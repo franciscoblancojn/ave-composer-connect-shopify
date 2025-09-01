@@ -8,5 +8,7 @@
             "franciscoblancojn\\AveConnectShopify\\": "src/"
         }
     },
-    "require": {}
+    "require": {
+        "franciscoblancojn/composer-validator": "^1.0"
+    }
 }

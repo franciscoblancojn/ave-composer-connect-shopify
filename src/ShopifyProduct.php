@@ -2,6 +2,8 @@
 
 namespace franciscoblancojn\AveConnectShopify;
 
+use function franciscoblancojn\validator\FValidator;
+
 /**
  * Class ShopifyProduct
  *
@@ -39,6 +41,227 @@ class ShopifyProduct
         return $this->client->get("products.json");
     }
 
+    public function validatorPost()
+    {
+        return FValidator("product.post")->isObject([
+            "product" => FValidator("product")->isObject([
+                // Información básica del producto
+                'title' => FValidator('title')
+                    ->isRequired('El título del producto es obligatorio')
+                    ->isString('El título debe ser texto')
+                    ->isRegex('/^.{1,255}$/', 'El título debe tener entre 1 y 255 caracteres'),
+
+                'body_html' => FValidator('body_html')
+                    ->isString('La descripción debe ser texto'),
+
+                'handle' => FValidator('handle')
+                    ->isString('El handle debe ser texto')
+                    ->isRegex('/^[a-z0-9-]*$/', 'El handle solo acepta minúsculas, números y guiones'),
+
+                'vendor' => FValidator('vendor')
+                    ->isString('El vendor debe ser texto'),
+
+                'product_type' => FValidator('product_type')
+                    ->isString('El tipo de producto debe ser texto'),
+
+                'status' => FValidator('status')
+                    ->isEnum(['active', 'archived', 'draft'], 'Status debe ser active, archived o draft'),
+
+                'tags' => FValidator('tags')
+                    ->isString('Los tags deben ser un string separado por comas'),
+
+                'created_at' => FValidator('created_at')
+                    ->isString('created_at debe ser texto')
+                    ->isDate('created_at debe ser una fecha válida'),
+
+                'updated_at' => FValidator('updated_at')
+                    ->isString('updated_at debe ser texto')
+                    ->isDate('updated_at debe ser una fecha válida'),
+
+                'published_at' => FValidator('published_at')
+                    ->isString('published_at debe ser texto')
+                    ->isDate('published_at debe ser una fecha válida'),
+
+                'template_suffix' => FValidator('template_suffix')
+                    ->isString('template_suffix debe ser texto'),
+
+                'published_scope' => FValidator('published_scope')
+                    ->isEnum(['web', 'global'], 'published_scope debe ser web o global'),
+
+                'admin_graphql_api_id' => FValidator('admin_graphql_api_id')
+                    ->isString('admin_graphql_api_id debe ser texto')
+                    ->isRegex('/^gid:\/\/shopify\/Product\/\d+$/', 'admin_graphql_api_id debe tener formato válido'),
+
+                // Variantes
+                'variants' => FValidator('variants')
+                    ->isRequired('Las variantes son obligatorias')
+                    ->isArray(
+                        FValidator()->isObject([
+                            'title' => FValidator('variant.title')
+                                ->isString('El título de variante debe ser texto'),
+                            'price' => FValidator('variant.price')
+                                ->isRequired('El precio es obligatorio')
+                                ->isString('El precio debe ser texto')
+                                ->isRegex('/^\d+\.?\d{0,2}$/', 'Precio con formato decimal válido'),
+                            'position' => FValidator('variant.position')
+                                ->isNumber('La posición debe ser un número')
+                                ->isMin(1, 'La posición debe ser mayor a 0'),
+                            'inventory_policy' => FValidator('variant.inventory_policy')
+                                ->isEnum(['deny', 'continue'], 'inventory_policy debe ser deny o continue'),
+                            'compare_at_price' => FValidator('variant.compare_at_price')
+                                ->isString('El precio de comparación debe ser texto')
+                                ->isRegex('/^\d+\.?\d{0,2}$/', 'Precio con formato decimal válido'),
+                            'option1' => FValidator('variant.option1')
+                                ->isString('option1 debe ser texto'),
+                            'option2' => FValidator('variant.option2')
+                                ->isString('option2 debe ser texto'),
+                            'option3' => FValidator('variant.option3')
+                                ->isString('option3 debe ser texto'),
+                            'created_at' => FValidator('variant.created_at')
+                                ->isString('created_at debe ser texto')
+                                ->isDate('created_at debe ser una fecha válida'),
+                            'updated_at' => FValidator('variant.updated_at')
+                                ->isString('updated_at debe ser texto')
+                                ->isDate('updated_at debe ser una fecha válida'),
+                            'taxable' => FValidator('variant.taxable')
+                                ->isBoolean('taxable debe ser booleano'),
+                            'barcode' => FValidator('variant.barcode')
+                                ->isString('El código de barras debe ser texto'),
+                            'fulfillment_service' => FValidator('variant.fulfillment_service')
+                                ->isEnum(['manual', 'shipwire', 'webgistix'], 'fulfillment_service debe ser válido'),
+                            'grams' => FValidator('variant.grams')
+                                ->isNumber('Los gramos deben ser un número')
+                                ->isMin(0, 'Los gramos deben ser positivos'),
+                            'inventory_management' => FValidator('variant.inventory_management')
+                                ->isString('inventory_management debe ser texto'),
+                            'requires_shipping' => FValidator('variant.requires_shipping')
+                                ->isBoolean('requires_shipping debe ser booleano'),
+                            'sku' => FValidator('variant.sku')
+                                ->isString('El SKU debe ser texto'),
+                            'weight' => FValidator('variant.weight')
+                                ->isNumber('El peso debe ser un número')
+                                ->isMin(0, 'El peso debe ser positivo'),
+                            'weight_unit' => FValidator('variant.weight_unit')
+                                ->isEnum(['g', 'kg', 'oz', 'lb'], 'Unidad de peso inválida'),
+                            'inventory_item_id' => FValidator('variant.inventory_item_id')
+                                ->isNumber('inventory_item_id debe ser un número'),
+                            'inventory_quantity' => FValidator('variant.inventory_quantity')
+                                ->isNumber('inventory_quantity debe ser un número')
+                                ->isMin(0, 'inventory_quantity debe ser positivo'),
+                            'old_inventory_quantity' => FValidator('variant.old_inventory_quantity')
+                                ->isNumber('old_inventory_quantity debe ser un número')
+                                ->isMin(0, 'old_inventory_quantity debe ser positivo'),
+                            'admin_graphql_api_id' => FValidator('variant.admin_graphql_api_id')
+                                ->isString('admin_graphql_api_id debe ser texto')
+                                ->isRegex('/^gid:\/\/shopify\/ProductVariant\/\d+$/', 'admin_graphql_api_id debe tener formato válido'),
+                            'image_id' => FValidator('variant.image_id')
+                                ->isNumber('image_id debe ser un número')
+                        ], 'Cada variante debe ser un objeto válido'),
+                        'Las variantes deben ser un array'
+                    ),
+
+                // Opciones del producto
+                'options' => FValidator('options')
+                    ->isArray(
+                        FValidator()->isObject([
+                            'id' => FValidator('option.id')
+                                ->isNumber('El ID debe ser un número'),
+                            'product_id' => FValidator('option.product_id')
+                                ->isNumber('product_id debe ser un número'),
+                            'name' => FValidator('option.name')
+                                ->isString('El nombre debe ser texto'),
+                            'position' => FValidator('option.position')
+                                ->isNumber('La posición debe ser un número')
+                                ->isMin(1, 'La posición debe ser mayor a 0'),
+                            'values' => FValidator('option.values')
+                                ->isArray(
+                                    FValidator()->isString('Cada valor debe ser texto'),
+                                    'Los valores deben ser un array'
+                                )
+                        ], 'Cada opción debe ser un objeto válido'),
+                        'Las opciones deben ser un array'
+                    ),
+
+                // Imágenes
+                'images' => FValidator('images')
+                    ->isArray(
+                        FValidator()->isObject([
+                            'id' => FValidator('image.id')
+                                ->isNumber('El ID debe ser un número'),
+                            'alt' => FValidator('image.alt')
+                                ->isString('El texto alternativo debe ser texto'),
+                            'position' => FValidator('image.position')
+                                ->isNumber('La posición debe ser un número')
+                                ->isMin(1, 'La posición debe ser mayor a 0'),
+                            'product_id' => FValidator('image.product_id')
+                                ->isNumber('product_id debe ser un número'),
+                            'created_at' => FValidator('image.created_at')
+                                ->isString('created_at debe ser texto')
+                                ->isDate('created_at debe ser una fecha válida'),
+                            'updated_at' => FValidator('image.updated_at')
+                                ->isString('updated_at debe ser texto')
+                                ->isDate('updated_at debe ser una fecha válida'),
+                            'admin_graphql_api_id' => FValidator('image.admin_graphql_api_id')
+                                ->isString('admin_graphql_api_id debe ser texto')
+                                ->isRegex('/^gid:\/\/shopify\/MediaImage\/\d+$/', 'admin_graphql_api_id debe tener formato válido'),
+                            'width' => FValidator('image.width')
+                                ->isNumber('El ancho debe ser un número')
+                                ->isMin(1, 'El ancho debe ser mayor a 0'),
+                            'height' => FValidator('image.height')
+                                ->isNumber('La altura debe ser un número')
+                                ->isMin(1, 'La altura debe ser mayor a 0'),
+                            'src' => FValidator('image.src')
+                                ->isString('La URL debe ser texto')
+                                ->isRegex('/^https?:\/\/.+\.(jpg|jpeg|png|gif|webp)$/i', 'URL de imagen inválida'),
+                            'variant_ids' => FValidator('image.variant_ids')
+                                ->isArray(
+                                    FValidator()->isNumber('Cada ID de variante debe ser un número'),
+                                    'variant_ids debe ser un array'
+                                )
+                        ], 'Cada imagen debe ser un objeto válido'),
+                        'Las imágenes deben ser un array'
+                    ),
+
+                // Imagen principal
+                'image' => FValidator('image')
+                    ->isObject([
+                        'id' => FValidator('main_image.id')
+                            ->isNumber('El ID debe ser un número'),
+                        'alt' => FValidator('main_image.alt')
+                            ->isString('El texto alternativo debe ser texto'),
+                        'position' => FValidator('main_image.position')
+                            ->isNumber('La posición debe ser un número')
+                            ->isMin(1, 'La posición debe ser mayor a 0'),
+                        'product_id' => FValidator('main_image.product_id')
+                            ->isNumber('product_id debe ser un número'),
+                        'created_at' => FValidator('main_image.created_at')
+                            ->isString('created_at debe ser texto')
+                            ->isDate('created_at debe ser una fecha válida'),
+                        'updated_at' => FValidator('main_image.updated_at')
+                            ->isString('updated_at debe ser texto')
+                            ->isDate('updated_at debe ser una fecha válida'),
+                        'admin_graphql_api_id' => FValidator('main_image.admin_graphql_api_id')
+                            ->isString('admin_graphql_api_id debe ser texto')
+                            ->isRegex('/^gid:\/\/shopify\/MediaImage\/\d+$/', 'admin_graphql_api_id debe tener formato válido'),
+                        'width' => FValidator('main_image.width')
+                            ->isNumber('El ancho debe ser un número')
+                            ->isMin(1, 'El ancho debe ser mayor a 0'),
+                        'height' => FValidator('main_image.height')
+                            ->isNumber('La altura debe ser un número')
+                            ->isMin(1, 'La altura debe ser mayor a 0'),
+                        'src' => FValidator('main_image.src')
+                            ->isString('La URL debe ser texto')
+                            ->isRegex('/^https?:\/\/.+\.(jpg|jpeg|png|gif|webp)$/i', 'URL de imagen inválida'),
+                        'variant_ids' => FValidator('main_image.variant_ids')
+                            ->isArray(
+                                FValidator()->isNumber('Cada ID de variante debe ser un número'),
+                                'variant_ids debe ser un array'
+                            )
+                    ], 'La imagen principal debe ser un objeto válido'),
+            ])
+        ]);
+    }
+
     /**
      * Crea un nuevo producto en Shopify.
      *
@@ -60,6 +283,7 @@ class ShopifyProduct
      */
     public function post(array $data): array
     {
+        $this->validatorPost()->validate($data);
         return $this->client->post("products.json", $data);
     }
 

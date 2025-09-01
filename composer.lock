@@ -1,0 +1,50 @@
+{
+    "_readme": [
+        "This file locks the dependencies of your project to a known state",
+        "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
+        "This file is @generated automatically"
+    ],
+    "content-hash": "c2cbff6d8896bf71971491b6b7dbdc8a",
+    "packages": [
+        {
+            "name": "franciscoblancojn/composer-validator",
+            "version": "v1.0.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/franciscoblancojn/composer-validator.git",
+                "reference": "7816e4268dd5b70a202918f4603cdc15141907d8"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/franciscoblancojn/composer-validator/zipball/7816e4268dd5b70a202918f4603cdc15141907d8",
+                "reference": "7816e4268dd5b70a202918f4603cdc15141907d8",
+                "shasum": ""
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "franciscoblancojn\\validator\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "description": "Libreria para validar datos",
+            "support": {
+                "issues": "https://github.com/franciscoblancojn/composer-validator/issues",
+                "source": "https://github.com/franciscoblancojn/composer-validator/tree/v1.0.0"
+            },
+            "time": "2025-09-01T19:41:40+00:00"
+        }
+    ],
+    "packages-dev": [],
+    "aliases": [],
+    "minimum-stability": "stable",
+    "stability-flags": {},
+    "prefer-stable": false,
+    "prefer-lowest": false,
+    "platform": {},
+    "platform-dev": {},
+    "plugin-api-version": "2.6.0"
+}
