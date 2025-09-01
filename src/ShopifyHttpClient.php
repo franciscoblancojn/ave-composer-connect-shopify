@@ -1,8 +1,8 @@
 <?php
 
-namespace franciscoblancojn\AveConnectShopify;
+namespace franciscoblancojn\ShopifyHttpClient;
 
-class HttpClient
+class ShopifyHttpClient
 {
     private string $version = '2025-01';
     private string $shop;

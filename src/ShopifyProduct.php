@@ -1,12 +1,14 @@
 <?php
 
-namespace franciscoblancojn\AveConnectShopify;
+namespace franciscoblancojn\ShopifyProduct;
+
+use franciscoblancojn\ShopifyHttpClient\ShopifyHttpClient;
 
 class ShopifyProduct
 {
-    private HttpClient $client;
+    private ShopifyHttpClient $client;
 
-    public function __construct(HttpClient $client)
+    public function __construct(ShopifyHttpClient $client)
     {
         $this->client = $client;
     }
