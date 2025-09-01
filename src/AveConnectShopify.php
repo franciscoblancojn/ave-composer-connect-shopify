@@ -4,12 +4,13 @@ namespace franciscoblancojn\AveConnectShopify;
 
 class AveConnectShopify
 {
-    public function __construct()
+    public ShopifyProduct $product;
+    public ShopifyOrder $order;
+
+    public function __construct(string $shop, string $token, $version = '2025-01')
     {
-        // Constructor
-    }
-    public function saludar($nombre)
-    {
-        return "Hola, $nombre 🚀";
+        $client = new HttpClient($shop, $token, $version);
+        $this->product = new ShopifyProduct($client);
+        $this->order = new ShopifyOrder($client);
     }
 }

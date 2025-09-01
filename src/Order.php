@@ -1,0 +1,33 @@
+<?php
+
+namespace franciscoblancojn\AveConnectShopify;
+
+class ShopifyOrder
+{
+    private HttpClient $client;
+
+    public function __construct(HttpClient $client)
+    {
+        $this->client = $client;
+    }
+
+    public function get()
+    {
+        return $this->client->get("orders.json");
+    }
+
+    public function post(array $data)
+    {
+        return $this->client->post("orders.json", $data);
+    }
+
+    public function put(string $id, array $data)
+    {
+        return $this->client->put("orders/$id.json", $data);
+    }
+
+    public function delete(string $id)
+    {
+        return $this->client->delete("orders/$id.json");
+    }
+}
