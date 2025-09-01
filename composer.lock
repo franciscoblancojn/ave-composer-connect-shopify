@@ -8,16 +8,16 @@
     "packages": [
         {
             "name": "franciscoblancojn/composer-validator",
-            "version": "v1.0.3",
+            "version": "v1.0.4",
             "source": {
                 "type": "git",
                 "url": "https://github.com/franciscoblancojn/composer-validator.git",
-                "reference": "1f49810eb94fd4ef890f2b8d18042fea44592cc4"
+                "reference": "1a115074d16c253081f0880c672511a59ccbd803"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/franciscoblancojn/composer-validator/zipball/1f49810eb94fd4ef890f2b8d18042fea44592cc4",
-                "reference": "1f49810eb94fd4ef890f2b8d18042fea44592cc4",
+                "url": "https://api.github.com/repos/franciscoblancojn/composer-validator/zipball/1a115074d16c253081f0880c672511a59ccbd803",
+                "reference": "1a115074d16c253081f0880c672511a59ccbd803",
                 "shasum": ""
             },
             "type": "library",
@@ -36,9 +36,9 @@
             "description": "Libreria para validar datos",
             "support": {
                 "issues": "https://github.com/franciscoblancojn/composer-validator/issues",
-                "source": "https://github.com/franciscoblancojn/composer-validator/tree/v1.0.3"
+                "source": "https://github.com/franciscoblancojn/composer-validator/tree/v1.0.4"
             },
-            "time": "2025-09-01T21:33:03+00:00"
+            "time": "2025-09-01T22:02:57+00:00"
         }
     ],
     "packages-dev": [],
