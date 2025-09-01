@@ -9,6 +9,6 @@
         }
     },
     "require": {
-        "franciscoblancojn/composer-validator": "^1.0"
+        "franciscoblancojn/composer-validator": "^1"
     }
 }

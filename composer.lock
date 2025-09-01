@@ -4,20 +4,20 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "c2cbff6d8896bf71971491b6b7dbdc8a",
+    "content-hash": "55a6c70a7bc83d13817dcaecdbbe94bb",
     "packages": [
         {
             "name": "franciscoblancojn/composer-validator",
-            "version": "v1.0.1",
+            "version": "v1.0.2",
             "source": {
                 "type": "git",
                 "url": "https://github.com/franciscoblancojn/composer-validator.git",
-                "reference": "b1836bdd56741b36f9fbcaa5cfcf548d5b6377f9"
+                "reference": "29ba852f0c2dc395b2dc3a8f0eae9d4cc744327b"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/franciscoblancojn/composer-validator/zipball/b1836bdd56741b36f9fbcaa5cfcf548d5b6377f9",
-                "reference": "b1836bdd56741b36f9fbcaa5cfcf548d5b6377f9",
+                "url": "https://api.github.com/repos/franciscoblancojn/composer-validator/zipball/29ba852f0c2dc395b2dc3a8f0eae9d4cc744327b",
+                "reference": "29ba852f0c2dc395b2dc3a8f0eae9d4cc744327b",
                 "shasum": ""
             },
             "type": "library",
@@ -33,9 +33,9 @@
             "description": "Libreria para validar datos",
             "support": {
                 "issues": "https://github.com/franciscoblancojn/composer-validator/issues",
-                "source": "https://github.com/franciscoblancojn/composer-validator/tree/v1.0.1"
+                "source": "https://github.com/franciscoblancojn/composer-validator/tree/v1.0.2"
             },
-            "time": "2025-09-01T21:12:24+00:00"
+            "time": "2025-09-01T21:18:09+00:00"
         }
     ],
     "packages-dev": [],
