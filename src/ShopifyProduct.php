@@ -170,7 +170,7 @@ class ShopifyProduct
                                 'variant_ids debe ser un array'
                             )
                     ], 'La imagen principal debe ser un objeto válido'),
-            ],"El producto debe ser un objeto válido")
+            ], "El producto debe ser un objeto válido")
         ]);
     }
 
@@ -199,6 +199,64 @@ class ShopifyProduct
         return $this->client->post("products.json", $data);
     }
 
+
+
+    public function validatorPut()
+    {
+        return FValidator("product.put")->isObject([
+            "product" => FValidator("product")->isObject([
+                "id" => FValidator("id")
+                    ->isRequired("El ID es obligatorio")
+                    ->isString("El ID debe ser un string"),
+
+                "title" => FValidator("title")
+                    ->isString("El título debe ser texto"),
+
+                "descriptionHtml" => FValidator("descriptionHtml")
+                    ->isString("La descripción debe ser texto"),
+
+                "vendor" => FValidator("vendor")
+                    ->isString("El vendor debe ser texto"),
+
+                "productType" => FValidator("productType")
+                    ->isString("El tipo de producto debe ser texto"),
+
+                "tags" => FValidator("tags")
+                    ->isArray(
+                        FValidator("tag")->isString("Cada tag debe ser un string"),
+                        "Los tags deben ser un array de strings"
+                    ),
+
+                "status" => FValidator("status")
+                    ->isEnum(["ACTIVE", "ARCHIVED", "DRAFT"], "El estado debe ser ACTIVE, ARCHIVED o DRAFT"),
+
+                "options" => FValidator("options")
+                    ->isArray(
+                        FValidator("option")->isObject([
+                            "name" => FValidator("name")->isRequired("El nombre de la opción es obligatorio")->isString("El nombre de la opción debe ser un string"),
+                            "values" => FValidator("values")->isArray(
+                                FValidator("value")->isString("Cada valor de opción debe ser un string"),
+                                "Los valores deben ser un array de strings"
+                            ),
+                        ], "La opción debe ser un objeto válido"),
+                        "Las opciones deben ser un array de objetos"
+                    ),
+
+                "metafields" => FValidator("metafields")
+                    ->isArray(
+                        FValidator("metafield")->isObject([
+                            "namespace" => FValidator("namespace")->isString("El namespace debe ser un string"),
+                            "key" => FValidator("key")->isString("El key debe ser un string"),
+                            "value" => FValidator("value")->isString("El value debe ser un string"),
+                            "type" => FValidator("type")->isString("El type debe ser un string válido"),
+                        ], "El metafield debe ser un objeto válido"),
+                        "Los metafields deben ser un array de objetos"
+                    ),
+            ], "El producto debe ser un objeto válido")
+        ]);
+    }
+
+
     /**
      * Actualiza un producto existente en Shopify.
      *
@@ -216,6 +274,7 @@ class ShopifyProduct
      */
     public function put(string $id, array $data): array
     {
+        $this->validatorPut()->validate($data);
         return $this->client->put("products/$id.json", $data);
     }
 
