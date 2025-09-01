@@ -40,7 +40,27 @@ class ShopifyProduct
     {
         return $this->client->get("products.json");
     }
-
+    /**
+     * Genera el validador para los datos de creación de producto (POST).
+     * 
+     * Define las reglas de validación para todos los campos requeridos y opcionales
+     * al crear un nuevo producto, incluyendo información básica, variantes, opciones e imágenes.
+     *
+     * @return mixed Instancia del validador configurado con todas las reglas de validación.
+     * 
+     * Campos validados:
+     * - title: Título del producto (obligatorio, 1-255 caracteres)
+     * - body_html: Descripción HTML del producto
+     * - handle: Handle URL del producto (solo minúsculas, números y guiones)
+     * - vendor: Proveedor/marca del producto
+     * - status: Estado del producto (active, archived, draft)
+     * - tags: Etiquetas del producto (string separado por comas)
+     * - published_scope: Alcance de publicación (web, global)
+     * - variants: Array de variantes del producto (obligatorio)
+     * - options: Array de opciones del producto
+     * - images: Array de imágenes del producto
+     * - image: Imagen principal del producto
+     */
     public function validatorPost()
     {
         return FValidator("product.post")->isObject([
@@ -200,7 +220,26 @@ class ShopifyProduct
     }
 
 
-
+    /**
+     * Genera el validador para los datos de actualización de producto (PUT).
+     * 
+     * Define las reglas de validación para los campos que pueden ser actualizados
+     * en un producto existente. A diferencia del validador POST, este usa la estructura
+     * de GraphQL de Shopify con campos como descriptionHtml y productType.
+     *
+     * @return mixed Instancia del validador configurado con las reglas de validación para actualización.
+     * 
+     * Campos validados:
+     * - id: ID del producto (obligatorio)
+     * - title: Título del producto
+     * - descriptionHtml: Descripción HTML del producto
+     * - vendor: Proveedor/marca del producto
+     * - productType: Tipo/categoría del producto
+     * - tags: Array de etiquetas del producto
+     * - status: Estado del producto (ACTIVE, ARCHIVED, DRAFT)
+     * - options: Array de opciones del producto con nombres y valores
+     * - metafields: Array de metafields del producto
+     */
     public function validatorPut()
     {
         return FValidator("product.put")->isObject([
