@@ -1,8 +1,6 @@
 <?php
 
-namespace franciscoblancojn\ShopifyOrder;
-
-use franciscoblancojn\ShopifyHttpClient\ShopifyHttpClient;
+namespace franciscoblancojn\AveConnectShopify;
 
 class ShopifyOrder
 {

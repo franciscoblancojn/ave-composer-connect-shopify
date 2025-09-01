@@ -1,6 +1,6 @@
 <?php
 
-namespace franciscoblancojn\ShopifyHttpClient;
+namespace franciscoblancojn\AveConnectShopify;
 
 class ShopifyHttpClient
 {

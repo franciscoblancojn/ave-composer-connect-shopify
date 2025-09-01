@@ -2,10 +2,6 @@
 
 namespace franciscoblancojn\AveConnectShopify;
 
-use franciscoblancojn\ShopifyHttpClient\ShopifyHttpClient;
-use franciscoblancojn\ShopifyOrder\ShopifyOrder;
-use franciscoblancojn\ShopifyProduct\ShopifyProduct;
-
 class AveConnectShopify
 {
     public ShopifyProduct $product;
