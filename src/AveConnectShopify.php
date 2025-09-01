@@ -2,11 +2,38 @@
 
 namespace franciscoblancojn\AveConnectShopify;
 
+/**
+ * Class AveConnectShopify
+ *
+ * Clase principal para conectarse a la API de Shopify.
+ * Inicializa los recursos principales como productos y órdenes,
+ * usando un cliente HTTP configurado con la tienda, token y versión de API.
+ *
+ * @package franciscoblancojn\AveConnectShopify
+ */
 class AveConnectShopify
 {
+    /**
+     * Manejo de productos de Shopify.
+     *
+     * @var ShopifyProduct
+     */
     public ShopifyProduct $product;
+
+    /**
+     * Manejo de órdenes de Shopify.
+     *
+     * @var ShopifyOrder
+     */
     public ShopifyOrder $order;
 
+    /**
+     * Constructor de la clase AveConnectShopify.
+     *
+     * @param string $shop    El dominio de la tienda de Shopify (ejemplo: midominio.myshopify.com).
+     * @param string $token   Token de acceso para la API de Shopify.
+     * @param string $version Versión de la API de Shopify a utilizar. Por defecto '2025-01'.
+     */
     public function __construct(string $shop, string $token, $version = '2025-01')
     {
         $client = new ShopifyHttpClient($shop, $token, $version);
