@@ -258,7 +258,7 @@ class ShopifyProduct
                                 'variant_ids debe ser un array'
                             )
                     ], 'La imagen principal debe ser un objeto válido'),
-            ])
+            ],"El producto debe ser un objeto válido")
         ]);
     }
 
