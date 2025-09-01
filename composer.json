@@ -1,0 +1,12 @@
+{
+    "name": "franciscoblancojn/ave-composer-connect-shopify",
+    "description": "Libreria para conectar con Shopify",
+    "type": "library",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "franciscoblancojn\\AveConnectShopify\\": "src/"
+        }
+    },
+    "require": {}
+}
