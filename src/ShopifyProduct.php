@@ -266,8 +266,8 @@ class ShopifyProduct
                         "Los tags deben ser un array de strings"
                     ),
 
-                "status" => FValidator("status")
-                    ->isEnum(["ACTIVE", "ARCHIVED", "DRAFT"], "El estado debe ser ACTIVE, ARCHIVED o DRAFT"),
+                'status' => FValidator('status')
+                    ->isEnum(['active', 'archived', 'draft'], 'Status debe ser active, archived o draft'),
 
                 "options" => FValidator("options")
                     ->isArray(
