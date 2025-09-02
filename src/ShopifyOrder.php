@@ -41,10 +41,31 @@ class ShopifyOrder
         return $this->client->get("orders.json");
     }
     /**
-     * Validador para crear una orden en Shopify (REST API), según OrderCreateOrderInput.
+     * Genera el validador para los datos de creación de una orden (POST).
+     * 
+     * Define las reglas de validación para todos los campos requeridos y opcionales
+     * al crear una nueva orden, incluyendo información del cliente, direcciones, 
+     * artículos de línea, pagos y opciones adicionales.
      *
-     * @return FValidator_Class
+     * @return mixed Instancia del validador configurado con todas las reglas de validación.
+     * 
+     * Campos validados:
+     * - customer: Información del cliente (nombre, email, teléfono)
+     * - billing_address: Dirección de facturación (opcional si es igual a shipping_address)
+     * - shipping_address: Dirección de envío (obligatoria si se requiere envío físico)
+     * - email: Correo electrónico del cliente (obligatorio, formato válido)
+     * - phone: Número de teléfono del cliente (opcional, formato válido)
+     * - line_items: Artículos de la orden (obligatorio, mínimo 1)
+     *     - variant_id: ID de la variante del producto (obligatorio)
+     *     - quantity: Cantidad solicitada (obligatorio, entero > 0)
+     *     - price: Precio unitario (opcional, se puede calcular automáticamente)
+     * - shipping_lines: Métodos de envío seleccionados (opcional)
+     * - discount_codes: Códigos de descuento aplicados (opcional)
+     * - note: Nota interna de la orden (opcional)
+     * - tags: Etiquetas asociadas a la orden (opcional)
+     * - transactions: Información de pagos (opcional si es pago manual)
      */
+
     public function validatorPost()
     {
         return FValidator('orderPost')->isObject([
