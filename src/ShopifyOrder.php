@@ -165,6 +165,21 @@ class ShopifyOrder
         return $this->client->post("orders.json", $data);
     }
 
+    /**
+     * Genera el validador para los datos de actualizacion de una orden (PUT).
+     * 
+     * Define las reglas de validación para todos los campos requeridos y opcionales
+     * al actualizar una orden.
+     *
+     * @return mixed Instancia del validador configurado con todas las reglas de validación.
+     * 
+     * Campos validados:
+     * - customer: Información del cliente (nombre, email, teléfono)
+     * - shipping_address: Dirección de envío (obligatoria si se requiere envío físico)
+     * - email: Correo electrónico del cliente (obligatorio, formato válido)
+     * - note: Nota interna de la orden (opcional)
+     */
+
     public function validatorPut()
     {
         return FValidator('orderPut')->isObject([
