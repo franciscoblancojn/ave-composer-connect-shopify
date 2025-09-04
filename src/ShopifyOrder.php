@@ -70,6 +70,8 @@ class ShopifyOrder
     {
         return FValidator('orderPost')->isObject([
             'order' => FValidator('order')->isObject([
+                'note' => FValidator('note')
+                    ->isString('La Nota debe ser texto'),
                 // Cliente
                 'email' => FValidator('email')
                     ->isRequired('El email de la orden es obligatorio')
@@ -131,6 +133,21 @@ class ShopifyOrder
                     ->isRequired('currency es obligatorio')
                     ->isString('currency debe ser texto')
                     ->isRegex('/^[A-Z]{3}$/', 'currency debe ser código ISO 4217 (3 letras)'),
+                
+
+                // Datos del direccion de envio
+                'shipping_address' => FValidator('shipping_address')
+                    ->isObject([
+                        'address1' => FValidator('shipping_address.address1')->isString('Direccion debe ser texto'),
+                        'address2' => FValidator('shipping_address.address2')->isString('Direccion 2 debe ser texto'),
+                        'city' => FValidator('shipping_address.city')->isString('Ciudad debe ser texto'),
+                        'countryCode' => FValidator('shipping_address.countryCode')->isString('Codigo de pais debe ser texto'),
+                        'firstName' => FValidator('shipping_address.firstName')->isString('Nombre debe ser texto'),
+                        'lastName' => FValidator('shipping_address.lastName')->isString('Apellido debe ser texto'),
+                        'phone' => FValidator('shipping_address.phone')->isString('Telefono debe ser texto'),
+                        'zip' => FValidator('shipping_address.zip')->isString('Zip debe ser texto'),
+                    ], 'customer debe ser un objeto válido'),
+
 
             ], 'order debe ser un objeto válido'),
         ]);
@@ -148,6 +165,41 @@ class ShopifyOrder
         return $this->client->post("orders.json", $data);
     }
 
+    public function validatorPut()
+    {
+        return FValidator('orderPut')->isObject([
+            'input' => FValidator('order')->isObject([
+                'note' => FValidator('note')
+                    ->isString('La Nota debe ser texto'),
+                // Cliente
+                'email' => FValidator('email')
+                    ->isEmail('El email debe ser válido'),
+
+                // Datos del cliente anidado
+                'customer' => FValidator('customer')
+                    ->isObject([
+                        'email'      => FValidator('customer.email')->isEmail('Email cliente inválido'),
+                        'first_name' => FValidator('customer.first_name')->isString('Nombre debe ser texto'),
+                        'last_name'  => FValidator('customer.last_name')->isString('Apellido debe ser texto'),
+                        'phone'      => FValidator('customer.phone')->isString('Phone cliente debe ser texto'),
+                    ], 'customer debe ser un objeto válido'),
+
+                // Datos del direccion de envio
+                'shipping_address' => FValidator('shipping_address')
+                    ->isObject([
+                        'address1' => FValidator('shipping_address.address1')->isString('Direccion debe ser texto'),
+                        'address2' => FValidator('shipping_address.address2')->isString('Direccion 2 debe ser texto'),
+                        'city' => FValidator('shipping_address.city')->isString('Ciudad debe ser texto'),
+                        'countryCode' => FValidator('shipping_address.countryCode')->isString('Codigo de pais debe ser texto'),
+                        'firstName' => FValidator('shipping_address.firstName')->isString('Nombre debe ser texto'),
+                        'lastName' => FValidator('shipping_address.lastName')->isString('Apellido debe ser texto'),
+                        'phone' => FValidator('shipping_address.phone')->isString('Telefono debe ser texto'),
+                        'zip' => FValidator('shipping_address.zip')->isString('Zip debe ser texto'),
+                    ], 'customer debe ser un objeto válido'),
+
+            ], 'order debe ser un objeto válido'),
+        ]);
+    }
     /**
      * Actualiza una orden existente en Shopify.
      *
@@ -157,6 +209,7 @@ class ShopifyOrder
      */
     public function put(string $id, array $data)
     {
+        $this->validatorPut()->validate($data);
         return $this->client->put("orders/$id.json", $data);
     }
 
