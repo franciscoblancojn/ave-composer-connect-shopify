@@ -28,6 +28,13 @@ class AveConnectShopify
     public ShopifyOrder $order;
 
     /**
+     * Manejo de transacciones de Shopify.
+     *
+     * @var ShopifyTransaction
+     */
+    public ShopifyTransaction $transaction;
+
+    /**
      * Constructor de la clase AveConnectShopify.
      *
      * @param string $shop    El dominio de la tienda de Shopify (ejemplo: midominio.myshopify.com).
@@ -39,5 +46,6 @@ class AveConnectShopify
         $client = new ShopifyHttpClient($shop, $token, $version);
         $this->product = new ShopifyProduct($client);
         $this->order = new ShopifyOrder($client);
+        $this->transaction = new ShopifyTransaction($client);
     }
 }
