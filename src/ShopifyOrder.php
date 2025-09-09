@@ -74,7 +74,6 @@ class ShopifyOrder
                     ->isString('La Nota debe ser texto'),
                 // Cliente
                 'email' => FValidator('email')
-                    ->isRequired('El email de la orden es obligatorio')
                     ->isEmail('El email debe ser válido'),
                 'phone' => FValidator('phone')
                     ->isString('El teléfono debe ser texto'),
