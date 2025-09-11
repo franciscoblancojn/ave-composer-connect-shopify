@@ -15,11 +15,11 @@ class ShopifyHttpClient
 {
     /**
      * Versión de la API de Shopify que se usará.
-     * Ejemplo: "2025-01"
+     * Ejemplo: "2025-07"
      *
      * @var string
      */
-    private string $version = '2025-01';
+    private string $version = '2025-07';
 
     /**
      * Nombre de la tienda Shopify (ej: "mitienda.myshopify.com").
@@ -40,9 +40,9 @@ class ShopifyHttpClient
      *
      * @param string $shop    Nombre de la tienda Shopify (ej: "mitienda.myshopify.com").
      * @param string $token   Token de acceso privado.
-     * @param string $version Versión de la API de Shopify (default: "2025-01").
+     * @param string $version Versión de la API de Shopify (default: "2025-07").
      */
-    public function __construct(string $shop, string $token, $version = '2025-01')
+    public function __construct(string $shop, string $token, $version = '2025-07')
     {
         $this->shop = $shop;
         $this->token = $token;

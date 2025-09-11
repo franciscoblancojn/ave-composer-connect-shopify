@@ -27,7 +27,7 @@ use franciscoblancojn\AveConnectShopify\AveConnectShopify;
 
 $shop = 'mi-tienda.myshopify.com';
 $token = 'shpat_XXXXXXXXXXXXXXXXXXXX';
-$version = '2025-01'; // opcional
+$version = '2025-07'; // opcional
 
 $shopify = new AveConnectShopify($shop, $token, $version);
 ```
