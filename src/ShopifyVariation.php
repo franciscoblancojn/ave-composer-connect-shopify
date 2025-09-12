@@ -31,7 +31,7 @@ class ShopifyVariation
             "variant" => FValidator("variant")->isObject([
                 "id" => FValidator("id")
                     ->isRequired("El ID es obligatorio")
-                    ->isString("El ID debe ser un string"),
+                    ->isNumber("El ID debe ser un string"),
 
                 "title" => FValidator("title")
                     ->isString("El título debe ser texto"),
