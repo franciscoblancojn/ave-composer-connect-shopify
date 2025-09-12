@@ -21,6 +21,13 @@ class AveConnectShopify
     public ShopifyProduct $product;
 
     /**
+     * Manejo de variation de Shopify.
+     *
+     * @var ShopifyVariation
+     */
+    public ShopifyVariation $variation;
+
+    /**
      * Manejo de órdenes de Shopify.
      *
      * @var ShopifyOrder
@@ -45,6 +52,7 @@ class AveConnectShopify
     {
         $client = new ShopifyHttpClient($shop, $token, $version);
         $this->product = new ShopifyProduct($client);
+        $this->variation = new ShopifyVariation($client);
         $this->order = new ShopifyOrder($client);
         $this->transaction = new ShopifyTransaction($client);
     }
