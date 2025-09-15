@@ -19,6 +19,13 @@ class AveConnectShopify
      * @var ShopifyProduct
      */
     public ShopifyProduct $product;
+    
+    /**
+     * Manejo de productos con GraphQL de Shopify.
+     *
+     * @var ShopifyGraphQLProduct
+     */
+    public ShopifyGraphQLProduct $productGraphQL;
 
     /**
      * Manejo de variation de Shopify.
@@ -55,5 +62,8 @@ class AveConnectShopify
         $this->variation = new ShopifyVariation($client);
         $this->order = new ShopifyOrder($client);
         $this->transaction = new ShopifyTransaction($client);
+
+        $clientGraphQL = new ShopifyGraphQLClient($shop, $token, $version);
+        $this->productGraphQL = new ShopifyGraphQLProduct($clientGraphQL);
     }
 }
