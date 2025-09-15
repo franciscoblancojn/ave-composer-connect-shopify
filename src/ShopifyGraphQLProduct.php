@@ -49,21 +49,104 @@ class ShopifyGraphQLProduct
             query getProducts(\$first: Int!) {
                 products(first: \$first) {
                     edges {
-                        node {
+                    node {
+                        id
+                        title
+                        descriptionHtml
+                        vendor
+                        productType
+                        createdAt
+                        handle
+                        updatedAt
+                        publishedAt
+                        status
+                        tags
+                        variants(first: 20) {
+                        edges {
+                            node {
                             id
                             title
-                            variants(first: 5) {
-                                edges { node { id title price } }
+                            price
+                            position
+                            inventoryPolicy
+                            compareAtPrice
+                            sku
+                            barcode
+                            createdAt
+                            updatedAt
+                            taxable
+                            inventoryItem {
+                                id
+                                tracked
+                            }
                             }
                         }
+                        }
+                        options {
+                        id
+                        name
+                        values
+                        }
+                        images(first: 10) {
+                        edges {
+                            node {
+                            id
+                            src: url
+                            }
+                        }
+                        }
+                        featuredImage {
+                        id
+                        src: url
+                        }
+                    }
                     }
                 }
-            }
+            }  
         GRAPHQL;
 
-        return $this->client->query($query, $filters);
-        // return $this->client->get("products.json");
+        $result = $this->client->query($query, $filters);
+
+        // Transformar para que se parezca a REST
+        $products = [];
+        foreach ($result['products']['edges'] as $edge) {
+            $node = $edge['node'];
+
+            $products[] = [
+                "id" => str_replace("gid://shopify/Product/", "", $node['id']),
+                "title" => $node['title'],
+                "body_html" => $node['descriptionHtml'],
+                "vendor" => $node['vendor'],
+                "product_type" => $node['productType'],
+                "created_at" => $node['createdAt'],
+                "handle" => $node['handle'],
+                "updated_at" => $node['updatedAt'],
+                "published_at" => $node['publishedAt'],
+                "template_suffix" => null, // no existe en GraphQL
+                "published_scope" => "web", // puedes setear fijo
+                "tags" => implode(",", $node['tags']),
+                "status" => strtolower($node['status']),
+                "admin_graphql_api_id" => $node['id'],
+                "variants" => array_map(fn($v) => [
+                    "id" => str_replace("gid://shopify/ProductVariant/", "", $v['node']['id']),
+                    "title" => $v['node']['title'],
+                    "price" => $v['node']['price'],
+                    "sku" => $v['node']['sku'],
+                    "barcode" => $v['node']['barcode'],
+                    "weight" => $v['node']['weight'],
+                    "weight_unit" => $v['node']['weightUnit'],
+                    "inventory_item_id" => str_replace("gid://shopify/InventoryItem/", "", $v['node']['inventoryItem']['id']),
+                    "inventory_quantity" => $v['node']['inventoryItem']['inventoryLevels']['edges'][0]['node']['available'] ?? 0,
+                ], $node['variants']['edges']),
+                "options" => $node['options'],
+                "images" => array_map(fn($i) => ["id" => $i['node']['id'], "src" => $i['node']['src']], $node['images']['edges']),
+                "image" => $node['featuredImage'] ? ["id" => $node['featuredImage']['id'], "src" => $node['featuredImage']['src']] : null
+            ];
+        }
+
+        return ["products" => $products];
     }
+
     /**
      * Genera el validador para los datos de creación de producto (POST).
      * 
