@@ -36,7 +36,7 @@ class ShopifyGraphQLClient
         $this->version = $version;
 
         $this->client = new Client([
-            'base_uri' => "https://{$this->shop}.myshopify.com/admin/api/{$this->version}/",
+            'base_uri' => "https://{$this->shop}/admin/api/{$this->version}/",
             'headers' => [
                 'Content-Type' => 'application/json',
                 'X-Shopify-Access-Token' => $this->token,
