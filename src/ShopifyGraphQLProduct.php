@@ -4,6 +4,17 @@ namespace franciscoblancojn\AveConnectShopify;
 
 use function franciscoblancojn\validator\FValidator;
 
+/**
+ * Clase de servicio para gestionar productos en Shopify mediante la API GraphQL.
+ * 
+ * Proporciona métodos para:
+ * - Listar productos con filtros.
+ * - Crear nuevos productos.
+ * - Actualizar productos existentes.
+ * - Eliminar productos.
+ * 
+ * Utiliza un cliente `ShopifyGraphQLClient` para enviar queries y mutations.
+ */
 class ShopifyGraphQLProduct
 {
     /**
@@ -13,11 +24,25 @@ class ShopifyGraphQLProduct
      */
     private ShopifyGraphQLClient $client;
 
+    /**
+     * Constructor de la clase.
+     *
+     * @param ShopifyGraphQLClient $client Cliente configurado con token y shop URL.
+     */
     public function __construct(ShopifyGraphQLClient $client)
     {
         $this->client = $client;
     }
 
+    /**
+     * Obtiene una lista de productos desde Shopify.
+     * 
+     * Ejecuta una query GraphQL para traer productos con sus variantes.
+     *
+     * @param array $filters Filtros opcionales para la query (ej. ['first' => 10]).
+     * 
+     * @return array Respuesta de la API de Shopify con productos y variantes.
+     */
     public function get(array $filters = ['first' => 10])
     {
         $query = <<<GRAPHQL
@@ -192,25 +217,12 @@ class ShopifyGraphQLProduct
             ], "El producto debe ser un objeto válido")
         ]);
     }
-
     /**
-     * Crea un nuevo producto en Shopify.
+     * Crea un nuevo producto en Shopify mediante una mutation GraphQL.
      *
-     * @param array $data Datos del producto a crear.
-     * Ejemplo:
-     * [
-     *   'product' => [
-     *      'title' => 'Nuevo producto',
-     *      'body_html' => '<strong>Descripción del producto</strong>',
-     *      'vendor' => 'MiMarca',
-     *      'product_type' => 'Categoría',
-     *      'variants' => [
-     *          ['option1' => 'Default Title', 'price' => '19.99']
-     *      ]
-     *   ]
-     * ]
-     *
-     * @return array Respuesta de la API con el producto creado.
+     * @param array $data Datos del producto a crear (estructura validada con validatorPost).
+     * 
+     * @return array Respuesta de la API de Shopify, incluyendo el producto creado o errores.
      */
     public function post(array $data): array
     {
@@ -313,21 +325,13 @@ class ShopifyGraphQLProduct
         ]);
     }
 
-
     /**
      * Actualiza un producto existente en Shopify.
      *
-     * @param string $id ID del producto a actualizar.
-     * @param array $data Datos a actualizar en el producto.
-     * Ejemplo:
-     * [
-     *   'product' => [
-     *      'id' => 123456789,
-     *      'title' => 'Producto actualizado',
-     *   ]
-     * ]
-     *
-     * @return array Respuesta de la API con el producto actualizado.
+     * @param string $id ID global del producto (formato gid://...).
+     * @param array $data Datos del producto a actualizar.
+     * 
+     * @return array Respuesta de la API de Shopify, incluyendo el producto actualizado o errores.
      */
     public function put(string $id, array $data): array
     {
@@ -358,11 +362,11 @@ class ShopifyGraphQLProduct
     }
 
     /**
-     * Elimina un producto en Shopify.
+     * Elimina un producto de Shopify.
      *
-     * @param string $id ID del producto a eliminar.
-     *
-     * @return array Respuesta de la API después de eliminar el producto.
+     * @param string $id ID global del producto (formato gid://...).
+     * 
+     * @return array Respuesta de la API de Shopify con el ID eliminado o errores.
      */
     public function delete(string $id): array
     {
