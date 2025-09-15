@@ -9,6 +9,7 @@
         }
     },
     "require": {
-        "franciscoblancojn/composer-validator": "^1"
+        "franciscoblancojn/composer-validator": "^1",
+        "guzzlehttp/guzzle": "^7.10"
     }
 }
