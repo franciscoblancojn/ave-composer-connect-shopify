@@ -115,9 +115,9 @@ class ShopifyGraphQLProduct
             $products[] = [
                 "id" => str_replace("gid://shopify/Product/", "", $node['id']),
                 "title" => $node['title'],
-                "body_html" => $node['descriptionHtml'],
+                "descriptionHtml" => $node['descriptionHtml'],
                 "vendor" => $node['vendor'],
-                "product_type" => $node['productType'],
+                "productType" => $node['productType'],
                 "created_at" => $node['createdAt'],
                 "handle" => $node['handle'],
                 "updated_at" => $node['updatedAt'],
@@ -136,7 +136,7 @@ class ShopifyGraphQLProduct
                     "weight" => $v['node']['weight'],
                     "weight_unit" => $v['node']['weightUnit'],
                     "inventory_item_id" => str_replace("gid://shopify/InventoryItem/", "", $v['node']['inventoryItem']['id']),
-                    "inventory_quantity" => $v['node']['inventoryItem']['inventoryLevels']['edges'][0]['node']['available'] ?? 0,
+                    "inventoryQuantity" => $v['node']['inventoryItem']['inventoryLevels']['edges'][0]['node']['available'] ?? 0,
                 ], $node['variants']['edges']),
                 "options" => $node['options'],
                 "images" => array_map(fn($i) => ["id" => $i['node']['id'], "src" => $i['node']['src']], $node['images']['edges']),
@@ -189,7 +189,7 @@ class ShopifyGraphQLProduct
                     ->isString('El vendor debe ser texto'),
 
                 'status' => FValidator('status')
-                    ->isEnum(['active', 'archived', 'draft'], 'Status debe ser active, archived o draft'),
+                    ->isEnum(['ACTIVE', 'ARCHIVED', 'DRAFT'], 'Status debe ser active, archived o draft'),
 
                 'tags' => FValidator('tags')
                     ->isString('Los tags deben ser un string separado por comas'),
@@ -213,7 +213,7 @@ class ShopifyGraphQLProduct
                                 ->isMin(1, 'La posición debe ser mayor a 0'),
                             'inventory_policy' => FValidator('variant.inventory_policy')
                                 ->isEnum(['deny', 'continue'], 'inventory_policy debe ser deny o continue'),
-                            'compare_at_price' => FValidator('variant.compare_at_price')
+                            'compareAtPrice' => FValidator('variant.compareAtPrice')
                                 ->isString('El precio de comparación debe ser texto')
                                 ->isRegex('/^\d+\.?\d{0,2}$/', 'Precio con formato decimal válido'),
                             'option1' => FValidator('variant.option1')
@@ -234,9 +234,9 @@ class ShopifyGraphQLProduct
                                 ->isMin(0, 'El peso debe ser positivo'),
                             'weight_unit' => FValidator('variant.weight_unit')
                                 ->isEnum(['g', 'kg', 'oz', 'lb'], 'Unidad de peso inválida'),
-                            'inventory_quantity' => FValidator('variant.inventory_quantity')
-                                ->isNumber('inventory_quantity debe ser un número')
-                                ->isMin(0, 'inventory_quantity debe ser positivo'),
+                            'inventoryQuantity' => FValidator('variant.inventoryQuantity')
+                                ->isNumber('inventoryQuantity debe ser un número')
+                                ->isMin(0, 'inventoryQuantity debe ser positivo'),
                             'image_id' => FValidator('variant.image_id')
                                 ->isNumber('image_id debe ser un número')
                         ], 'Cada variante debe ser un objeto válido'),
@@ -269,8 +269,8 @@ class ShopifyGraphQLProduct
                 'images' => FValidator('images')
                     ->isArray(
                         FValidator()->isObject([
-                            'alt' => FValidator('image.alt')
-                                ->isString('El texto alternativo debe ser texto'),
+                            'altText' => FValidator('image.altText')
+                                ->isString('El texto altTexternativo debe ser texto'),
                             'src' => FValidator('image.src')
                                 ->isString('La URL debe ser texto')
                                 ->isRegex('/^https?:\/\/.+\.(jpg|jpeg|png|gif|webp)$/i', 'URL de imagen inválida'),
@@ -286,8 +286,8 @@ class ShopifyGraphQLProduct
                 // Imagen principal
                 'image' => FValidator('image')
                     ->isObject([
-                        'alt' => FValidator('main_image.alt')
-                            ->isString('El texto alternativo debe ser texto'),
+                        'altText' => FValidator('main_image.altText')
+                            ->isString('El texto altTexternativo debe ser texto'),
                         'src' => FValidator('main_image.src')
                             ->isString('La URL debe ser texto')
                             ->isRegex('/^https?:\/\/.+\.(jpg|jpeg|png|gif|webp)$/i', 'URL de imagen inválida'),
@@ -311,13 +311,141 @@ class ShopifyGraphQLProduct
     {
         $this->validatorPost()->validate($data);
 
-        $mutation = <<<GRAPHQL
+
+
+
+        if (false) {
+            $mutationProduct = <<<GRAPHQL
+                mutation productCreate(\$input: ProductInput!) {
+                    productCreate(input: \$input) {
+                        product {
+                            id
+                            title
+                            status
+                            handle
+                            options {
+                                id
+                                name
+                                position
+                                optionValues {
+                                    id
+                                    name
+                                    hasVariants
+                                }
+                            }
+                            variants(first: 20) {
+                                edges {
+                                    node {
+                                        id
+                                        title
+                                        sku
+                                        price
+                                        selectedOptions {
+                                            name
+                                            value
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        userErrors {
+                            field
+                            message
+                        }
+                    }
+                }
+            GRAPHQL;
+
+            // Construir productOptions (array de strings)
+            $productOptions = null;
+            if (!empty($data['product']['options'])) {
+                $productOptions = [];
+                foreach ($data['product']['options'] as $option) {
+                    $productOptions[] = [
+                        "name" => $option['name'],
+                        "values" => $option['values'] // aquí van strings directamente
+                    ];
+                }
+            }
+
+            // Construir variantes
+            $productVariants = null;
+            if (!empty($data['product']['variants'])) {
+                $productVariants = [];
+                foreach ($data['product']['variants'] as $variant) {
+                    $options = [];
+                    if ($variant['option1']) {
+                        $options[] = $variant['option1'];
+                    }
+                    if ($variant['option2']) {
+                        $options[] = $variant['option2'];
+                    }
+                    if ($variant['option3']) {
+                        $options[] = $variant['option3'];
+                    }
+                    $productVariants[] = [
+                        "title"   => $variant['title'] ?? null,
+                        "price"   => $variant['price'] ?? null,
+                        "sku"     => $variant['sku'] ?? null,
+                        "options" => $options ?? [] // ej: ["Red"], ["Blue"]
+                    ];
+                }
+            }
+
+            // Construir input final
+            $productInput = [
+                'title'          => $data['product']['title'] ?? null,
+                'descriptionHtml' => $data['product']['body_html'] ?? null,
+                'vendor'         => $data['product']['vendor'] ?? null,
+                'productType'    => $data['product']['product_type'] ?? null,
+                'handle'         => $data['product']['handle'] ?? null,
+                'tags'           => $data['product']['tags'] ?? null,
+                'status'         => $data['product']['status'] ?? null,
+                'options'        => $productOptions,
+                'variants'       => $productVariants,
+            ];
+
+            // Ejecutar query
+            $response = $this->client->query($mutationProduct, [
+                'input' => $productInput,
+            ]);
+
+            // Manejo de errores
+            if (!empty($response['productCreate']['userErrors'])) {
+                return $response;
+            }
+
+            $productId = $response['productCreate']['product']['id'] ?? null;
+            return $response;
+        }
+
+
+
+
+        // 1️⃣ Mutación para crear el producto base
+        $mutationProduct = <<<GRAPHQL
             mutation productCreate(\$input: ProductInput!) {
                 productCreate(input: \$input) {
                     product {
                         id
                         title
                         status
+                        handle
+                        options {
+                            id
+                            name
+                            position
+                            optionValues {
+                                id
+                                name
+                                hasVariants
+                            }
+                        }
+                        variants(first: 1) {
+                            nodes {
+                                id
+                            }
+                        }
                     }
                     userErrors {
                         field
@@ -326,11 +454,261 @@ class ShopifyGraphQLProduct
                 }
             }
         GRAPHQL;
+        $productOptions = null;
+        if ($data['product']['options']) {
+            $productOptions = [];
+            foreach ($data['product']['options'] as $keyOption => $option) {
+                $optionData = [
+                    "name" => $option['name'],
+                    'values' => [
+                        [
+                            "name" => "_"
+                        ]
+                    ]
+                ];
+                $productOptions[] = $optionData;
+            }
+        }
+        // Construimos el input para ProductInput
+        $productInput = [
+            'title' => $data['product']['title'] ?? null,
+            'descriptionHtml' => $data['product']['body_html'] ?? null,
+            'vendor' => $data['product']['vendor'] ?? null,
+            'productType' => $data['product']['product_type'] ?? null,
+            'handle' => $data['product']['handle'] ?? null,
+            'tags' => $data['product']['tags'] ?? null,
+            'status' => $data['product']['status'] ?? null,
+            'productOptions' => $productOptions,
+        ];
 
-        return $this->client->query($mutation, [
-            'input' => $data['product'],
+        $response = $this->client->query($mutationProduct, [
+            'input' => $productInput,
         ]);
+        // Si hay error en la creación del producto, devolvemos
+        if (!empty($response['productCreate']['userErrors'])) {
+            return $response;
+        }
+        $product = $response['productCreate']['product'] ?? null;
+        $productId = $product['id'] ?? null;
+        $variantIdBase = $product['variants']['nodes'][0]['id'] ?? null;
+        // return $response;
+
+
+
+        if (false) {
+            $mutationCreateOption = <<<GRAPHQL
+                mutation createOptions(\$productId: ID!, \$options: [OptionCreateInput!]!, \$variantStrategy: ProductOptionCreateVariantStrategy) {
+                    productOptionsCreate(productId: \$productId, options: \$options, variantStrategy: \$variantStrategy) {
+                        userErrors {
+                            field
+                            message
+                            code
+                        }
+                        product {
+                            id
+                            variants(first: 10) {
+                                nodes {
+                                id
+                                title
+                                    selectedOptions {
+                                        name
+                                        value
+                                    }
+                                }
+                            }
+                            options {
+                                id
+                                name
+                                values
+                                position
+                                optionValues {
+                                    id
+                                    name
+                                    hasVariants
+                                }
+                            }
+                        }
+                    }
+                }
+            GRAPHQL;
+
+            $responseOptions = $this->client->query($mutationCreateOption, [
+                'productId' => $productId, // ejemplo: "gid://shopify/Product/1234567890"
+                'options'  => $productOptions
+            ]);
+            $optionsCreated = $responseOptions['productOptionsCreate']['product']['options'] ?? [];
+        }
+
+
+        // 2️⃣ Crear variantes si existen
+        if ($productId && !empty($data['product']['variants'])) {
+            $variantsBulk = [];
+            foreach ($data['product']['variants'] as $variant) {
+                $variantData = [
+                    // 'sku' => $variant['sku'],
+                    'price' => (float)($variant['price'] ?? 0.00),
+                    'compareAtPrice' => (float)($variant['compare_at_price'] ?? 0.00),
+                ];
+                $options = [];
+                if ($variant['option1']) {
+                    $options[] = [
+                        "name" => $variant['option1'],
+                        "optionName" => $productOptions[0]['name'],
+                    ];
+                }
+                if ($variant['option2']) {
+                    $options[] = [
+                        "name" => $variant['option2'],
+                        "optionName" => $productOptions[1]['name'],
+                    ];
+                }
+                if ($variant['option3']) {
+                    $options[] = [
+                        "name" => $variant['option3'],
+                        "optionName" => $productOptions[2]['name'],
+                    ];
+                }
+                $variantData['optionValues'] = $options;
+                $variantsBulk[] = $variantData;
+            }
+
+            $mutationVariantsBulk = <<<GRAPHQL
+                mutation ProductVariantsCreate(\$productId: ID!, \$variants: [ProductVariantsBulkInput!]!) {
+                    productVariantsBulkCreate(productId: \$productId, variants: \$variants) {
+                        productVariants {
+                            id
+                            title
+                            selectedOptions {
+                                name
+                                value
+                            }
+                        }
+                        userErrors {
+                            field
+                            message
+                        }
+                    }
+                }
+            GRAPHQL;
+
+            $variants = $this->client->query($mutationVariantsBulk, [
+                'productId' => $productId, // ejemplo: "gid://shopify/Product/1234567890"
+                'variants'  => $variantsBulk,
+            ]);
+            $variants['variantsBulk'] = $variantsBulk;
+        }
+        $response['variants'] = $variants;
+
+
+        $mutationDeleteValidation = <<<GRAPHQL
+            mutation bulkDeleteProductVariants(\$productId: ID!, \$variantsIds: [ID!]!) {
+                productVariantsBulkDelete(productId: \$productId, variantsIds: \$variantsIds) {
+                    product {
+                        id
+                        title
+                    }
+                    userErrors {
+                        field
+                        message
+                    }
+                }
+            }
+        GRAPHQL;
+        $responseValidationDeleted = $this->client->query($mutationDeleteValidation, [
+            "productId" => $productId,
+            "variantsIds" => [
+                $variantIdBase
+            ]
+        ]);
+        $response['responseValidationDeleted'] = $responseValidationDeleted;
+
+
+        $mutationDeleteOption = <<<GRAPHQL
+            mutation updateOption(
+                \$productId: ID!, 
+                \$optionId: ID!, 
+                \$optionValuesToDelete: [ID!]!
+                ) {
+                productOptionUpdate(
+                    productId: \$productId,
+                    option: {
+                    id: \$optionId
+                    },
+                    optionValuesToDelete: \$optionValuesToDelete
+                ) {
+                    product {
+                    id
+                    options {
+                        id
+                        name
+                        values
+                        optionValues {
+                        id
+                        name
+                        hasVariants
+                        }
+                    }
+                    }
+                    userErrors {
+                    field
+                    message
+                    }
+                }
+            }
+        GRAPHQL;
+        $responseOptionsDeleted = [];
+        foreach ($product['options'] as $key => $optionDeleted) {
+            $optionId = $optionDeleted['id'];
+            $optionValuesToDelete = [$optionDeleted['optionValues'][0]['id']];
+            $responseOptionsDeleted[] = $this->client->query($mutationDeleteOption, [
+                "productId" => $productId,
+                "optionId" => $optionId,   // el ID de la opción “color” por ejemplo
+                "optionValuesToDelete" => $optionValuesToDelete
+            ]);
+        }
+        $response['responseOptionsDeleted'] = $responseOptionsDeleted;
+
+
+
+
+
+
+        return $response;
+
+        // 3️⃣ Crear imágenes si existen
+        $images = [];
+        if ($productId && !empty($data['product']['images'])) {
+            foreach ($data['product']['images'] as $image) {
+                $mutationImage = <<<GRAPHQL
+                    mutation productImageCreate(\$input: ProductImageCreateInput!) {
+                        productImageCreate(input: \$input) {
+                            image {
+                                id
+                                src
+                            }
+                            userErrors {
+                                field
+                                message
+                            }
+                        }
+                    }
+                GRAPHQL;
+
+                $imageInput = [
+                    'productId' => $productId,
+                    'altText' => $image['altText'] ?? null,
+                    'src' => $image['src'] ?? null,
+                ];
+
+                $images[] = $this->client->query($mutationImage, [
+                    'input' => $imageInput,
+                ]);
+            }
+        }
+        $response['images'] = $images;
+        return $response;
     }
+
 
 
     /**
@@ -380,7 +758,7 @@ class ShopifyGraphQLProduct
                     ),
 
                 'status' => FValidator('status')
-                    ->isEnum(['active', 'archived', 'draft'], 'Status debe ser active, archived o draft'),
+                    ->isEnum(['ACTIVE', 'ARCHIVED', 'DRAFT'], 'Status debe ser active, archived o draft'),
 
                 "options" => FValidator("options")
                     ->isArray(
