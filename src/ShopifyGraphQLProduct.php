@@ -420,7 +420,7 @@ class ShopifyGraphQLProduct
                 "productId" => $productId,
                 "media" => $imagesSends
             ]);
-            if($imagesResult && $imagesResult['productCreateMedia'] && $imagesResult['productCreateMedia']['media']){
+            if ($imagesResult && $imagesResult['productCreateMedia'] && $imagesResult['productCreateMedia']['media']) {
                 $imagesResult = $imagesResult['productCreateMedia']['media'];
             }
             $response['imagesResult'] = $imagesResult;
@@ -432,7 +432,7 @@ class ShopifyGraphQLProduct
             foreach ($data['product']['variants'] as $variant) {
                 $variantData = [
                     'inventoryItem' => [
-                    // 'title' => $variant['title'],
+                        // 'title' => $variant['title'],
                         'sku' => $variant['sku'],
                     ],
                     'price' => (float)($variant['price'] ?? 0.00),
@@ -458,15 +458,15 @@ class ShopifyGraphQLProduct
                     ];
                 }
                 $imageId = null;
-                if($data['product']['image']){
-                        $imageId = $imagesResult[0]['id'];
+                if ($data['product']['image']) {
+                    $imageId = $imagesResult[0]['id'];
                 }
                 foreach ($imagesResult as $key => $img) {
-                    if($img['alt'] == $variant['title']){
+                    if ($img['alt'] == $variant['title']) {
                         $imageId = $img['id'];
                     }
                 }
-                if($imageId){
+                if ($imageId) {
                     $variantData['mediaId'] = $imageId;
                 }
                 $variantData['optionValues'] = $options;
@@ -497,6 +497,14 @@ class ShopifyGraphQLProduct
                 'variants'  => $variantsBulk,
             ]);
             $variants['variantsBulk'] = $variantsBulk;
+            if ($variants && $variants['productVariantsBulkCreate'] && $variants['productVariantsBulkCreate']['productVariants']) {
+                $variantsResult = [];
+                foreach ($variants['productVariantsBulkCreate']['productVariants'] as $key => $value) {
+                    $variantsResult  = $value;
+                    $variantsResult['sku']  = $value['inventoryItem']['sku'];
+                }
+                $variants = $variantsResult;
+            }
         }
         $response['variants'] = $variants;
 
