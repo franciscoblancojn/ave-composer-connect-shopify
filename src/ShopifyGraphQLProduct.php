@@ -310,118 +310,6 @@ class ShopifyGraphQLProduct
     public function post(array $data): array
     {
         $this->validatorPost()->validate($data);
-
-
-
-
-        if (false) {
-            $mutationProduct = <<<GRAPHQL
-                mutation productCreate(\$input: ProductInput!) {
-                    productCreate(input: \$input) {
-                        product {
-                            id
-                            title
-                            status
-                            handle
-                            options {
-                                id
-                                name
-                                position
-                                optionValues {
-                                    id
-                                    name
-                                    hasVariants
-                                }
-                            }
-                            variants(first: 20) {
-                                edges {
-                                    node {
-                                        id
-                                        title
-                                        sku
-                                        price
-                                        selectedOptions {
-                                            name
-                                            value
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        userErrors {
-                            field
-                            message
-                        }
-                    }
-                }
-            GRAPHQL;
-
-            // Construir productOptions (array de strings)
-            $productOptions = null;
-            if (!empty($data['product']['options'])) {
-                $productOptions = [];
-                foreach ($data['product']['options'] as $option) {
-                    $productOptions[] = [
-                        "name" => $option['name'],
-                        "values" => $option['values'] // aquí van strings directamente
-                    ];
-                }
-            }
-
-            // Construir variantes
-            $productVariants = null;
-            if (!empty($data['product']['variants'])) {
-                $productVariants = [];
-                foreach ($data['product']['variants'] as $variant) {
-                    $options = [];
-                    if ($variant['option1']) {
-                        $options[] = $variant['option1'];
-                    }
-                    if ($variant['option2']) {
-                        $options[] = $variant['option2'];
-                    }
-                    if ($variant['option3']) {
-                        $options[] = $variant['option3'];
-                    }
-                    $productVariants[] = [
-                        "title"   => $variant['title'] ?? null,
-                        "price"   => $variant['price'] ?? null,
-                        "sku"     => $variant['sku'] ?? null,
-                        "options" => $options ?? [] // ej: ["Red"], ["Blue"]
-                    ];
-                }
-            }
-
-            // Construir input final
-            $productInput = [
-                'title'          => $data['product']['title'] ?? null,
-                'descriptionHtml' => $data['product']['body_html'] ?? null,
-                'vendor'         => $data['product']['vendor'] ?? null,
-                'productType'    => $data['product']['product_type'] ?? null,
-                'handle'         => $data['product']['handle'] ?? null,
-                'tags'           => $data['product']['tags'] ?? null,
-                'status'         => $data['product']['status'] ?? null,
-                'options'        => $productOptions,
-                'variants'       => $productVariants,
-            ];
-
-            // Ejecutar query
-            $response = $this->client->query($mutationProduct, [
-                'input' => $productInput,
-            ]);
-
-            // Manejo de errores
-            if (!empty($response['productCreate']['userErrors'])) {
-                return $response;
-            }
-
-            $productId = $response['productCreate']['product']['id'] ?? null;
-            return $response;
-        }
-
-
-
-
         // 1️⃣ Mutación para crear el producto base
         $mutationProduct = <<<GRAPHQL
             mutation productCreate(\$input: ProductInput!) {
@@ -454,6 +342,7 @@ class ShopifyGraphQLProduct
                 }
             }
         GRAPHQL;
+
         $productOptions = null;
         if ($data['product']['options']) {
             $productOptions = [];
@@ -491,61 +380,61 @@ class ShopifyGraphQLProduct
         $product = $response['productCreate']['product'] ?? null;
         $productId = $product['id'] ?? null;
         $variantIdBase = $product['variants']['nodes'][0]['id'] ?? null;
-        // return $response;
 
 
 
-        if (false) {
-            $mutationCreateOption = <<<GRAPHQL
-                mutation createOptions(\$productId: ID!, \$options: [OptionCreateInput!]!, \$variantStrategy: ProductOptionCreateVariantStrategy) {
-                    productOptionsCreate(productId: \$productId, options: \$options, variantStrategy: \$variantStrategy) {
-                        userErrors {
+
+        // 2️⃣ Crear imágenes si existen
+        $images = array_merge($data['product']['image'] ? [$data['product']['image']] : [], $data['product']['images'] ?? []);
+        $imagesResult = [];
+        if ($productId && !empty($images)) {
+            $mutationImage = <<<GRAPHQL
+                mutation productCreateMedia(\$media: [CreateMediaInput!]!, \$productId: ID!) {
+                    productCreateMedia(media: \$media, productId: \$productId) {
+                        media {
+                            id
+                            alt
+                            mediaContentType
+                            status
+                        }
+                        mediaUserErrors {
                             field
                             message
-                            code
                         }
                         product {
                             id
-                            variants(first: 10) {
-                                nodes {
-                                id
-                                title
-                                    selectedOptions {
-                                        name
-                                        value
-                                    }
-                                }
-                            }
-                            options {
-                                id
-                                name
-                                values
-                                position
-                                optionValues {
-                                    id
-                                    name
-                                    hasVariants
-                                }
-                            }
+                            title
                         }
                     }
                 }
             GRAPHQL;
-
-            $responseOptions = $this->client->query($mutationCreateOption, [
-                'productId' => $productId, // ejemplo: "gid://shopify/Product/1234567890"
-                'options'  => $productOptions
+            $imagesSends = [];
+            foreach ($images as $key => $image) {
+                $imagesSends[] = [
+                    "alt" => $image['alt'],
+                    "mediaContentType" => "IMAGE",
+                    "originalSource" => $image['src'],
+                ];
+            }
+            $imagesResult = $this->client->query($mutationImage, [
+                "productId" => $productId,
+                "media" => $imagesSends
             ]);
-            $optionsCreated = $responseOptions['productOptionsCreate']['product']['options'] ?? [];
+            if($imagesResult && $imagesResult['productCreateMedia'] && $imagesResult['productCreateMedia']['media']){
+                $imagesResult = $imagesResult['productCreateMedia']['media'];
+            }
+            $response['imagesResult'] = $imagesResult;
         }
 
-
-        // 2️⃣ Crear variantes si existen
+        // 3️⃣ Crear variantes si existen
         if ($productId && !empty($data['product']['variants'])) {
             $variantsBulk = [];
             foreach ($data['product']['variants'] as $variant) {
                 $variantData = [
-                    // 'sku' => $variant['sku'],
+                    'inventoryItem' => [
+                    // 'title' => $variant['title'],
+                        'sku' => $variant['sku'],
+                    ],
                     'price' => (float)($variant['price'] ?? 0.00),
                     'compareAtPrice' => (float)($variant['compare_at_price'] ?? 0.00),
                 ];
@@ -567,6 +456,18 @@ class ShopifyGraphQLProduct
                         "name" => $variant['option3'],
                         "optionName" => $productOptions[2]['name'],
                     ];
+                }
+                $imageId = null;
+                if($data['product']['image']){
+                        $imageId = $imagesResult[0]['id'];
+                }
+                foreach ($imagesResult as $key => $img) {
+                    if($img['alt'] == $variant['title']){
+                        $imageId = $img['id'];
+                    }
+                }
+                if($imageId){
+                    $variantData['mediaId'] = $imageId;
                 }
                 $variantData['optionValues'] = $options;
                 $variantsBulk[] = $variantData;
@@ -622,90 +523,6 @@ class ShopifyGraphQLProduct
         ]);
         $response['responseValidationDeleted'] = $responseValidationDeleted;
 
-
-        $mutationDeleteOption = <<<GRAPHQL
-            mutation updateOption(
-                \$productId: ID!, 
-                \$optionId: ID!, 
-                \$optionValuesToDelete: [ID!]!
-                ) {
-                productOptionUpdate(
-                    productId: \$productId,
-                    option: {
-                    id: \$optionId
-                    },
-                    optionValuesToDelete: \$optionValuesToDelete
-                ) {
-                    product {
-                    id
-                    options {
-                        id
-                        name
-                        values
-                        optionValues {
-                        id
-                        name
-                        hasVariants
-                        }
-                    }
-                    }
-                    userErrors {
-                    field
-                    message
-                    }
-                }
-            }
-        GRAPHQL;
-        $responseOptionsDeleted = [];
-        foreach ($product['options'] as $key => $optionDeleted) {
-            $optionId = $optionDeleted['id'];
-            $optionValuesToDelete = [$optionDeleted['optionValues'][0]['id']];
-            $responseOptionsDeleted[] = $this->client->query($mutationDeleteOption, [
-                "productId" => $productId,
-                "optionId" => $optionId,   // el ID de la opción “color” por ejemplo
-                "optionValuesToDelete" => $optionValuesToDelete
-            ]);
-        }
-        $response['responseOptionsDeleted'] = $responseOptionsDeleted;
-
-
-
-
-
-
-        return $response;
-
-        // 3️⃣ Crear imágenes si existen
-        $images = [];
-        if ($productId && !empty($data['product']['images'])) {
-            foreach ($data['product']['images'] as $image) {
-                $mutationImage = <<<GRAPHQL
-                    mutation productImageCreate(\$input: ProductImageCreateInput!) {
-                        productImageCreate(input: \$input) {
-                            image {
-                                id
-                                src
-                            }
-                            userErrors {
-                                field
-                                message
-                            }
-                        }
-                    }
-                GRAPHQL;
-
-                $imageInput = [
-                    'productId' => $productId,
-                    'altText' => $image['altText'] ?? null,
-                    'src' => $image['src'] ?? null,
-                ];
-
-                $images[] = $this->client->query($mutationImage, [
-                    'input' => $imageInput,
-                ]);
-            }
-        }
-        $response['images'] = $images;
         return $response;
     }
 
