@@ -503,8 +503,9 @@ class ShopifyGraphQLProduct
             if ($variants && $variants['productVariantsBulkCreate'] && $variants['productVariantsBulkCreate']['productVariants']) {
                 $variantsResult = [];
                 foreach ($variants['productVariantsBulkCreate']['productVariants'] as $key => $value) {
-                    $variantsResult  = $value;
-                    $variantsResult['sku']  = $value['inventoryItem']['sku'];
+                    $v = $value;
+                    $v['sku'] = $value['inventoryItem']['sku'];
+                    $variantsResult[] = $v;
                 }
                 $variants = $variantsResult;
             }
