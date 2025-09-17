@@ -439,24 +439,25 @@ class ShopifyGraphQLProduct
                     'compareAtPrice' => (float)($variant['compare_at_price'] ?? 0.00),
                 ];
                 $options = [];
-                if ($variant['option1']) {
+                if (!empty($variant['option1'])) {
                     $options[] = [
                         "name" => $variant['option1'],
                         "optionName" => $productOptions[0]['name'],
                     ];
                 }
-                if ($variant['option2']) {
+                if (!empty($variant['option2'])) {
                     $options[] = [
                         "name" => $variant['option2'],
-                        "optionName" => $productOptions[1]['name'],
+                        "optionName" => $productOptions[1]['name'] ?? 'Option2',
                     ];
                 }
-                if ($variant['option3']) {
+                if (!empty($variant['option3'])) {
                     $options[] = [
                         "name" => $variant['option3'],
-                        "optionName" => $productOptions[2]['name'],
+                        "optionName" => $productOptions[2]['name'] ?? 'Option3',
                     ];
                 }
+
                 $imageId = null;
                 if ($data['product']['image']) {
                     $imageId = $imagesResult[0]['id'];
