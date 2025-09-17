@@ -462,7 +462,7 @@ class ShopifyGraphQLProduct
                     $imageId = $imagesResult[0]['id'];
                 }
                 foreach ($imagesResult as $key => $img) {
-                    if ($img['alt'] == $variant['title']) {
+                    if ($img['alt'] == $variant['sku']) {
                         $imageId = $img['id'];
                     }
                 }
@@ -479,7 +479,7 @@ class ShopifyGraphQLProduct
                         productVariants {
                             id
                             title
-                            inventoryItem{
+                            inventoryItem {
                                 sku
                             }
                             selectedOptions {
