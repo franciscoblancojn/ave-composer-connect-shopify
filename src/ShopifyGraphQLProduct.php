@@ -623,12 +623,9 @@ class ShopifyGraphQLProduct
      * 
      * @return array Respuesta de la API de Shopify, incluyendo el producto actualizado o errores.
      */
-    public function put(string $id, array $data): array
+    public function put(array $data): array
     {
         $this->validatorPut()->validate($data);
-
-        // Forzar ID en formato global gid://...
-        $data['product']['id'] = $id;
 
         // 1️⃣ Mutación para actualizar información base del producto
         $mutationUpdate = <<<GRAPHQL
@@ -660,15 +657,15 @@ class ShopifyGraphQLProduct
         GRAPHQL;
 
         $productInput = [
-            "id"            => $id,
+            "id"            => $data["product"]['id'],
             "title"         => $data["product"]["title"] ?? null,
             "descriptionHtml" => $data["product"]["descriptionHtml"] ?? null,
             "vendor"        => $data["product"]["vendor"] ?? null,
             "productType"   => $data["product"]["productType"] ?? null,
             "tags"          => $data["product"]["tags"] ?? null,
             "status"        => $data["product"]["status"] ?? null,
-            "options"       => $data["product"]["options"] ?? null,
-            "metafields"    => $data["product"]["metafields"] ?? null,
+            // "options"       => $data["product"]["options"] ?? null,
+            // "metafields"    => $data["product"]["metafields"] ?? null,
         ];
 
         $response = $this->client->query($mutationUpdate, [
@@ -676,7 +673,9 @@ class ShopifyGraphQLProduct
         ]);
 
         // 2️⃣ Actualizar imágenes (si las hay)
-        if (!empty($data["product"]["images"])) {
+        $images = array_merge($data['product']['image'] ? [$data['product']['image']] : [], $data['product']['images'] ?? []);
+        $imagesResult = [];
+        if (!empty($images)) {
             $mutationImage = <<<GRAPHQL
                 mutation productCreateMedia(\$media: [CreateMediaInput!]!, \$productId: ID!) {
                     productCreateMedia(media: \$media, productId: \$productId) {
@@ -699,19 +698,19 @@ class ShopifyGraphQLProduct
             GRAPHQL;
 
             $imagesSends = [];
-            foreach ($data["product"]["images"] as $image) {
+            foreach ($images as $image) {
                 $imagesSends[] = [
-                    "alt"               => $image["altText"] ?? null,
+                    "alt"               => $image["alt"] ?? null,
                     "mediaContentType"  => "IMAGE",
                     "originalSource"    => $image["src"],
                 ];
             }
 
             $imagesResult = $this->client->query($mutationImage, [
-                "productId" => $id,
+                "productId" => $data['product']['id'],
                 "media"     => $imagesSends,
             ]);
-
+            $response["imagesSends"] = $imagesSends;
             $response["imagesResult"] = $imagesResult;
         }
 
@@ -761,7 +760,7 @@ class ShopifyGraphQLProduct
             }
 
             $variantsResult = $this->client->query($mutationVariants, [
-                "productId" => $id,
+                "productId" => $data['product']['id'],
                 "variants"  => $variantsBulk,
             ]);
 
