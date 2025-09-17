@@ -479,6 +479,9 @@ class ShopifyGraphQLProduct
                         productVariants {
                             id
                             title
+                            inventoryItem{
+                                sku
+                            }
                             selectedOptions {
                                 name
                                 value
