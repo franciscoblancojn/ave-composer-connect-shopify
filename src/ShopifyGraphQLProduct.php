@@ -618,8 +618,8 @@ class ShopifyGraphQLProduct
     /**
      * Actualiza un producto existente en Shopify.
      *
-     * @param string $id ID global del producto (formato gid://...).
-     * @param array $data Datos del producto a actualizar.
+     * @param string $id ID global del producto (formato gid://shopify/Product/123...).
+     * @param array $data Datos del producto a actualizar (estructura validada con validatorPut).
      * 
      * @return array Respuesta de la API de Shopify, incluyendo el producto actualizado o errores.
      */
@@ -627,13 +627,29 @@ class ShopifyGraphQLProduct
     {
         $this->validatorPut()->validate($data);
 
-        $mutation = <<<GRAPHQL
+        // Forzar ID en formato global gid://...
+        $data['product']['id'] = $id;
+
+        // 1️⃣ Mutación para actualizar información base del producto
+        $mutationUpdate = <<<GRAPHQL
             mutation productUpdate(\$input: ProductInput!) {
                 productUpdate(input: \$input) {
                     product {
                         id
                         title
+                        descriptionHtml
+                        vendor
+                        productType
+                        tags
                         status
+                        options {
+                            id
+                            name
+                            optionValues {
+                                id
+                                name
+                            }
+                        }
                     }
                     userErrors {
                         field
@@ -643,12 +659,116 @@ class ShopifyGraphQLProduct
             }
         GRAPHQL;
 
-        // Shopify espera el ID en formato global (gid://...), así que revisa que $id ya venga así
-        $data['product']['id'] = $id;
+        $productInput = [
+            "id"            => $id,
+            "title"         => $data["product"]["title"] ?? null,
+            "descriptionHtml" => $data["product"]["descriptionHtml"] ?? null,
+            "vendor"        => $data["product"]["vendor"] ?? null,
+            "productType"   => $data["product"]["productType"] ?? null,
+            "tags"          => $data["product"]["tags"] ?? null,
+            "status"        => $data["product"]["status"] ?? null,
+            "options"       => $data["product"]["options"] ?? null,
+            "metafields"    => $data["product"]["metafields"] ?? null,
+        ];
 
-        return $this->client->query($mutation, [
-            'input' => $data['product'],
+        $response = $this->client->query($mutationUpdate, [
+            "input" => $productInput
         ]);
+
+        // 2️⃣ Actualizar imágenes (si las hay)
+        if (!empty($data["product"]["images"])) {
+            $mutationImage = <<<GRAPHQL
+                mutation productCreateMedia(\$media: [CreateMediaInput!]!, \$productId: ID!) {
+                    productCreateMedia(media: \$media, productId: \$productId) {
+                        media {
+                            id
+                            alt
+                            mediaContentType
+                            status
+                        }
+                        mediaUserErrors {
+                            field
+                            message
+                        }
+                        product {
+                            id
+                            title
+                        }
+                    }
+                }
+            GRAPHQL;
+
+            $imagesSends = [];
+            foreach ($data["product"]["images"] as $image) {
+                $imagesSends[] = [
+                    "alt"               => $image["altText"] ?? null,
+                    "mediaContentType"  => "IMAGE",
+                    "originalSource"    => $image["src"],
+                ];
+            }
+
+            $imagesResult = $this->client->query($mutationImage, [
+                "productId" => $id,
+                "media"     => $imagesSends,
+            ]);
+
+            $response["imagesResult"] = $imagesResult;
+        }
+
+        // 3️⃣ Actualizar variantes (si las hay)
+        if (!empty($data["product"]["variants"])) {
+            $mutationVariants = <<<GRAPHQL
+                mutation ProductVariantsBulkUpdate(\$productId: ID!, \$variants: [ProductVariantsBulkInput!]!) {
+                    productVariantsBulkCreate(productId: \$productId, variants: \$variants) {
+                        productVariants {
+                            id
+                            title
+                            inventoryItem {
+                                sku
+                            }
+                            selectedOptions {
+                                name
+                                value
+                            }
+                        }
+                        userErrors {
+                            field
+                            message
+                        }
+                    }
+                }
+            GRAPHQL;
+
+            $variantsBulk = [];
+            foreach ($data["product"]["variants"] as $variant) {
+                $variantData = [
+                    "inventoryItem" => [
+                        "sku" => $variant["sku"] ?? null,
+                    ],
+                    "price"         => (float)($variant["price"] ?? 0.00),
+                    "compareAtPrice" => (float)($variant["compareAtPrice"] ?? 0.00),
+                ];
+
+                if (!empty($variant["optionValues"])) {
+                    $variantData["optionValues"] = $variant["optionValues"];
+                }
+
+                if (!empty($variant["image_id"])) {
+                    $variantData["mediaId"] = $variant["image_id"];
+                }
+
+                $variantsBulk[] = $variantData;
+            }
+
+            $variantsResult = $this->client->query($mutationVariants, [
+                "productId" => $id,
+                "variants"  => $variantsBulk,
+            ]);
+
+            $response["variantsResult"] = $variantsResult;
+        }
+
+        return $response;
     }
 
     /**
