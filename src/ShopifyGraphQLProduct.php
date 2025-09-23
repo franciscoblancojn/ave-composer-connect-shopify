@@ -425,7 +425,7 @@ class ShopifyGraphQLProduct
             }
             $response['imagesResult'] = $imagesResult;
         }
-
+        $variants = [];
         // 3️⃣ Crear variantes si existen
         if ($productId && !empty($data['product']['variants'])) {
             $variantsBulk = [];
