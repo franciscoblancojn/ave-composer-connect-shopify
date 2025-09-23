@@ -199,7 +199,7 @@ class ShopifyGraphQLProduct
 
                 // Variantes
                 'variants' => FValidator('variants')
-                    ->isRequired('Las variantes son obligatorias')
+                    // ->isRequired('Las variantes son obligatorias')
                     ->isArray(
                         FValidator()->isObject([
                             'title' => FValidator('variant.title')
