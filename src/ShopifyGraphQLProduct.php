@@ -538,9 +538,6 @@ class ShopifyGraphQLProduct
 
         return $response;
     }
-
-
-
     /**
      * Genera el validador para los datos de actualización de producto (PUT).
      * 
@@ -657,8 +654,21 @@ class ShopifyGraphQLProduct
             }
         GRAPHQL;
 
+        $product_id = $data["product"]['id'];
+        function normalizeProductId($product_id)
+        {
+            // Si ya viene en formato GID, lo retornamos tal cual
+            if (str_starts_with($product_id, 'gid://shopify/Product/')) {
+                return $product_id;
+            }
+
+            // Si solo viene el número, lo formateamos
+            return "gid://shopify/Product/{$product_id}";
+        }
+        $product_id = normalizeProductId($product_id);
+
         $productInput = [
-            "id"            => $data["product"]['id'],
+            "id"            => $product_id,
             "title"         => $data["product"]["title"] ?? null,
             "descriptionHtml" => $data["product"]["descriptionHtml"] ?? null,
             "vendor"        => $data["product"]["vendor"] ?? null,
@@ -717,13 +727,29 @@ class ShopifyGraphQLProduct
 
         // 3️⃣ Actualizar variantes (si las hay)
         if (!empty($data["product"]["variants"])) {
+
+            function normalizeVariantId($variant_id)
+            {
+                $variant_id = (string)$variant_id;
+                // Si ya viene en formato GID, lo retornamos tal cual
+                if (str_starts_with($variant_id, 'gid://shopify/ProductVariant/')) {
+                    return $variant_id;
+                }
+                // Si solo viene el número, lo formateamos
+                return "gid://shopify/ProductVariant/{$variant_id}";
+            }
+
             $mutationVariants = <<<GRAPHQL
                 mutation ProductVariantsBulkUpdate(\$productId: ID!, \$variants: [ProductVariantsBulkInput!]!) {
-                    productVariantsBulkCreate(productId: \$productId, variants: \$variants) {
+                    productVariantsBulkUpdate(productId: \$productId, variants: \$variants) {
                         productVariants {
                             id
                             title
+                            sku
+                            price
+                            compareAtPrice
                             inventoryItem {
+                                id
                                 sku
                             }
                             selectedOptions {
@@ -742,6 +768,7 @@ class ShopifyGraphQLProduct
             $variantsBulk = [];
             foreach ($data["product"]["variants"] as $variant) {
                 $variantData = [
+                    "id"             => normalizeVariantId($variant["id"]), // ⚠️ IMPORTANTE para actualizar
                     "inventoryItem" => [
                         "sku" => $variant["sku"] ?? null,
                     ],
