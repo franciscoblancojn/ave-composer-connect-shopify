@@ -513,28 +513,29 @@ class ShopifyGraphQLProduct
         }
         $response['variants'] = $variants;
 
-
-        $mutationDeleteValidation = <<<GRAPHQL
-            mutation bulkDeleteProductVariants(\$productId: ID!, \$variantsIds: [ID!]!) {
-                productVariantsBulkDelete(productId: \$productId, variantsIds: \$variantsIds) {
-                    product {
-                        id
-                        title
-                    }
-                    userErrors {
-                        field
-                        message
+        if ($variantIdBase) {
+            $mutationDeleteValidation = <<<GRAPHQL
+                mutation bulkDeleteProductVariants(\$productId: ID!, \$variantsIds: [ID!]!) {
+                    productVariantsBulkDelete(productId: \$productId, variantsIds: \$variantsIds) {
+                        product {
+                            id
+                            title
+                        }
+                        userErrors {
+                            field
+                            message
+                        }
                     }
                 }
-            }
-        GRAPHQL;
-        $responseValidationDeleted = $this->client->query($mutationDeleteValidation, [
-            "productId" => $productId,
-            "variantsIds" => [
-                $variantIdBase
-            ]
-        ]);
-        $response['responseValidationDeleted'] = $responseValidationDeleted;
+            GRAPHQL;
+            $responseValidationDeleted = $this->client->query($mutationDeleteValidation, [
+                "productId" => $productId,
+                "variantsIds" => [
+                    $variantIdBase
+                ]
+            ]);
+            $response['responseValidationDeleted'] = $responseValidationDeleted;
+        }
 
         return $response;
     }
