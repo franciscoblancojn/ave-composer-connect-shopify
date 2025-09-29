@@ -432,11 +432,25 @@ class ShopifyGraphQLProduct
             foreach ($data['product']['variants'] as $variant) {
                 $variantData = [
                     'inventoryItem' => [
-                        // 'title' => $variant['title'],
                         'sku' => $variant['sku'],
+                        'measurement' => [
+                            'weight' => [
+                                'unit' =>  'KILOGRAMS',
+                                'value' => (float)($variant['weight'] ?? 0),
+                            ],
+                        ],
                     ],
                     'price' => (float)($variant['price'] ?? 0.00),
                     'compareAtPrice' => (float)($variant['compare_at_price'] ?? 0.00),
+                    'inventoryPolicy' => strtoupper($variant['inventory_policy'] ?? 'DENY'), // enum: DENY | CONTINUE
+                    // 'requiresShipping' => $variant['requires_shipping'] ?? true,
+                    // 'weight' => (float)($variant['weight'] ?? 0),
+                    // 'weightUnit' => strtoupper($variant['weight_unit'] ?? 'GRAMS'), // enum: GRAMS, KILOGRAMS, OUNCES, POUNDS
+                    // 'inventoryQuantities' => [
+                    //     [
+                    //         'availableQuantity' => (int)($variant['inventory_quantity'] ?? 0)
+                    //     ]
+                    // ],
                 ];
                 $options = [];
                 if (!empty($variant['option1'])) {
@@ -770,11 +784,18 @@ class ShopifyGraphQLProduct
             foreach ($data["product"]["variants"] as $variant) {
                 $variantData = [
                     "id"             => normalizeVariantId($variant["id"]), // ⚠️ IMPORTANTE para actualizar
-                    "inventoryItem" => [
-                        "sku" => $variant["sku"] ?? null,
+                    'inventoryItem' => [
+                        'sku' => $variant['sku'],
+                        'measurement' => [
+                            'weight' => [
+                                'unit' =>  'KILOGRAMS',
+                                'value' => (float)($variant['weight'] ?? 0),
+                            ],
+                        ],
                     ],
-                    "price"         => (float)($variant["price"] ?? 0.00),
-                    "compareAtPrice" => (float)($variant["compareAtPrice"] ?? 0.00),
+                    'price' => (float)($variant['price'] ?? 0.00),
+                    'compareAtPrice' => (float)($variant['compare_at_price'] ?? 0.00),
+                    'inventoryPolicy' => strtoupper($variant['inventory_policy'] ?? 'DENY'), // enum: DENY | CONTINUE
                 ];
 
                 if (!empty($variant["optionValues"])) {
