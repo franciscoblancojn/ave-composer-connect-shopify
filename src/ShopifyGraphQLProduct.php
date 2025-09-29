@@ -495,6 +495,7 @@ class ShopifyGraphQLProduct
                             id
                             title
                             inventoryItem {
+                                id
                                 sku
                             }
                             selectedOptions {
@@ -514,7 +515,74 @@ class ShopifyGraphQLProduct
                 'productId' => $productId, // ejemplo: "gid://shopify/Product/1234567890"
                 'variants'  => $variantsBulk,
             ]);
+            // echo json_encode($variants);
             $variants['variantsBulk'] = $variantsBulk;
+
+
+            // Guardar inventario después de crear variantes
+            $locationQuery = <<<GRAPHQL
+                query {
+                    locations(first: 1) {
+                        edges {
+                            node {
+                                id
+                                name
+                            }
+                        }
+                    }
+                }
+            GRAPHQL;
+            $locResponse = $this->client->query($locationQuery);
+            $locations = $locResponse['locations']['edges'] ?? [];
+            if (empty($locations)) {
+                throw new \Exception("No existen ubicaciones configuradas en la tienda. Agregue al menos una en Shopify Admin → Settings → Locations.");
+            }
+            $locationId = $locations[0]['node']['id'];
+            $mutationAdjustInventory = <<<GRAPHQL
+                mutation inventorySetQuantities(\$input: InventorySetQuantitiesInput!) {
+                    inventorySetQuantities(input: \$input) {
+                        userErrors {
+                            field
+                            message
+                        }
+                        inventoryAdjustmentGroup {
+                            reason
+                            changes {
+                                delta
+                                quantityAfterChange
+                                location {
+                                    id
+                                    name
+                                }
+                            }
+                        }
+                    }
+                }
+            GRAPHQL;
+            if (!empty($variants['productVariantsBulkCreate']['productVariants'])) {
+                $resultInventorySetQuantities = [];
+                foreach ($variants['productVariantsBulkCreate']['productVariants'] as $i => $variantCreated) {
+                    $inventoryQuantity = (int)($data['product']['variants'][$i]['inventory_quantity'] ?? 0);
+                    if ($inventoryQuantity > 0) {
+                        $resultInventorySetQuantities[] = $this->client->query($mutationAdjustInventory, [
+                            "input" => [
+                                "reason" => "correction",
+                                "ignoreCompareQuantity" => true,
+                                "name" => "on_hand",
+                                "quantities" => [
+                                    [
+                                        "inventoryItemId" => $variantCreated['inventoryItem']['id'],
+                                        "locationId" => $locationId,
+                                        "quantity" => $inventoryQuantity,
+                                    ]
+                                ]
+                            ]
+                        ]);
+                    }
+                }
+                $response['resultInventorySetQuantities'] = $resultInventorySetQuantities;
+            }
+
             if ($variants && $variants['productVariantsBulkCreate'] && $variants['productVariantsBulkCreate']['productVariants']) {
                 $variantsResult = [];
                 foreach ($variants['productVariantsBulkCreate']['productVariants'] as $key => $value) {
