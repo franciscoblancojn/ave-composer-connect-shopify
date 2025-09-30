@@ -443,14 +443,6 @@ class ShopifyGraphQLProduct
                     'price' => (float)($variant['price'] ?? 0.00),
                     'compareAtPrice' => (float)($variant['compare_at_price'] ?? 0.00),
                     'inventoryPolicy' => strtoupper($variant['inventory_policy'] ?? 'DENY'), // enum: DENY | CONTINUE
-                    // 'requiresShipping' => $variant['requires_shipping'] ?? true,
-                    // 'weight' => (float)($variant['weight'] ?? 0),
-                    // 'weightUnit' => strtoupper($variant['weight_unit'] ?? 'GRAMS'), // enum: GRAMS, KILOGRAMS, OUNCES, POUNDS
-                    // 'inventoryQuantities' => [
-                    //     [
-                    //         'availableQuantity' => (int)($variant['inventory_quantity'] ?? 0)
-                    //     ]
-                    // ],
                 ];
                 $options = [];
                 if (!empty($variant['option1'])) {
@@ -1077,6 +1069,86 @@ class ShopifyGraphQLProduct
             $response["variantsResult"] = $variantsResult;
         }
 
+        // Después de crear $productId y antes del return
+        if (!empty($data['product']['categoryName']) && $product_id) {
+            $categoryName = $data['product']['categoryName'];
+
+            // 1️⃣ Buscar colección por título
+            $queryCollection = <<<GRAPHQL
+                query(\$title: String!) {
+                    collections(first: 1, query: \$title) {
+                        edges {
+                            node {
+                                id
+                                title
+                            }
+                        }
+                    }
+                }
+            GRAPHQL;
+            $colResponse = $this->client->query($queryCollection, [
+                "title" => "title:$categoryName"
+            ]);
+            $collectionId = $colResponse['collections']['edges'][0]['node']['id'] ?? null;
+
+            // 2️⃣ Si no existe, crear la colección
+            if (!$collectionId) {
+                $mutationCollection = <<<GRAPHQL
+                    mutation CreateCollection(\$input: CollectionInput!) {
+                        collectionCreate(input: \$input) {
+                            collection {
+                                id
+                                title
+                            }
+                            userErrors {
+                                field
+                                message
+                            }
+                        }
+                    }
+                GRAPHQL;
+                $createColResponse = $this->client->query($mutationCollection, [
+                    "input" => [
+                        "title" => $categoryName,
+                    ]
+                ]);
+                $collectionId = $createColResponse['collectionCreate']['collection']['id'] ?? null;
+                $response['createCollection'] = $createColResponse;
+            }
+
+            // 3️⃣ Asociar el producto a la colección (GraphQL correcto)
+            if ($collectionId) {
+                $mutationAddProduct = <<<GRAPHQL
+                    mutation addProductToCollection(\$id: ID!, \$productIds: [ID!]!) {
+                        collectionAddProducts(id: \$id, productIds: \$productIds) {
+                            collection {
+                                id
+                                title
+                                products(first: 5) {
+                                    edges {
+                                        node {
+                                            id
+                                            title
+                                        }
+                                    }
+                                }
+                            }
+                            userErrors {
+                                field
+                                message
+                            }
+                        }
+                    }
+                GRAPHQL;
+
+                $collectResponse = $this->client->query($mutationAddProduct, [
+                    "id" => $collectionId,
+                    "productIds" => [$product_id],
+                ]);
+
+                $response['collectResponse'] = $collectResponse;
+            }
+        }
         return $response;
     }
 
