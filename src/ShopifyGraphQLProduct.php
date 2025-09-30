@@ -619,6 +619,198 @@ class ShopifyGraphQLProduct
             $response['responseValidationDeleted'] = $responseValidationDeleted;
         }
 
+        // Después de crear $productId y antes del return
+        if (!empty($data['product']['categoryName']) && $productId) {
+            $categoryName = $data['product']['categoryName'];
+
+            // 1️⃣ Buscar colección por título
+            $queryCollection = <<<GRAPHQL
+                query(\$title: String!) {
+                    collections(first: 1, query: \$title) {
+                        edges {
+                            node {
+                                id
+                                title
+                            }
+                        }
+                    }
+                }
+            GRAPHQL;
+            $colResponse = $this->client->query($queryCollection, [
+                "title" => "title:$categoryName"
+            ]);
+            $collectionId = $colResponse['collections']['edges'][0]['node']['id'] ?? null;
+
+            // 2️⃣ Si no existe, crear la colección
+            if (!$collectionId) {
+                $mutationCollection = <<<GRAPHQL
+                    mutation CreateCollection(\$input: CollectionInput!) {
+                        collectionCreate(input: \$input) {
+                            collection {
+                                id
+                                title
+                            }
+                            userErrors {
+                                field
+                                message
+                            }
+                        }
+                    }
+                GRAPHQL;
+                $createColResponse = $this->client->query($mutationCollection, [
+                    "input" => [
+                        "title" => $categoryName,
+                    ]
+                ]);
+                $collectionId = $createColResponse['collectionCreate']['collection']['id'] ?? null;
+                $response['createCollection'] = $createColResponse;
+            }
+
+            // 3️⃣ Asociar el producto a la colección (GraphQL correcto)
+            if ($collectionId) {
+                $mutationAddProduct = <<<GRAPHQL
+                    mutation addProductToCollection(\$id: ID!, \$productIds: [ID!]!) {
+                        collectionAddProducts(id: \$id, productIds: \$productIds) {
+                            collection {
+                                id
+                                title
+                                products(first: 5) {
+                                    edges {
+                                        node {
+                                            id
+                                            title
+                                        }
+                                    }
+                                }
+                            }
+                            userErrors {
+                                field
+                                message
+                            }
+                        }
+                    }
+                GRAPHQL;
+
+                $collectResponse = $this->client->query($mutationAddProduct, [
+                    "id" => $collectionId,
+                    "productIds" => [$productId],
+                ]);
+
+                $response['collectResponse'] = $collectResponse;
+            }
+        }
+
+        // ======= NUEVA SECCIÓN: asignar categoría (TaxonomyCategory) =======
+        // Se ejecuta después de crear $productId y antes del return
+        if (!empty($data['product']['categoryName']) && $productId && 1 == 2) {
+            $categoryName = trim($data['product']['categoryName']);
+            // 1) Buscar la categoría en la taxonomía
+            $queryTaxonomy = <<<GRAPHQL
+                query taxonomySearch(\$search: String!) {
+                    taxonomy {
+                        categories(search: \$search, first: 10) {
+                            nodes {
+                                id
+                                name
+                                fullName
+                            }
+                        }
+                    }
+                }
+            GRAPHQL;
+
+            $taxResponse = $this->client->query($queryTaxonomy, [
+                "search" => $categoryName
+            ]);
+
+            $nodes = $taxResponse['taxonomy']['categories']['nodes'] ?? [];
+            $categoryId = null;
+
+            // intentar match exacto por name o por fullName conteniendo el término
+            foreach ($nodes as $n) {
+                if (isset($n['name']) && strcasecmp($n['name'], $categoryName) === 0) {
+                    $categoryId = $n['id'];
+                    break;
+                }
+            }
+            if (!$categoryId) {
+                foreach ($nodes as $n) {
+                    if (isset($n['fullName']) && stripos($n['fullName'], $categoryName) !== false) {
+                        $categoryId = $n['id'];
+                        break;
+                    }
+                }
+            }
+            if (!$categoryId) {
+                // Si no encontramos categoría, crear una nueva
+                $mutationCreateCategory = <<<GRAPHQL
+                    mutation createTaxonomyCategory(\$input: TaxonomyCategoryInput!) {
+                        taxonomyCategoryCreate(input: \$input) {
+                            category {
+                                id
+                                name
+                                fullName
+                            }
+                            userErrors {
+                                field
+                                message
+                            }
+                        }
+                    }
+                GRAPHQL;
+
+                $createCatResponse = $this->client->query($mutationCreateCategory, [
+                    "input" => [
+                        "name" => $categoryName,
+                    ]
+                ]);
+
+                $categoryId = $createCatResponse['taxonomyCategoryCreate']['category']['id'] ?? null;
+                $response['createCategory'] = $createCatResponse;
+            }
+
+            // 2) Si encontramos categoría -> productUpdate para setearla
+            if ($categoryId) {
+                $mutationProductUpdate = <<<GRAPHQL
+                    mutation productUpdate(\$input: ProductInput!) {
+                        productUpdate(input: \$input) {
+                            product {
+                                id
+                                title
+                                category {
+                                    id
+                                    name
+                                    fullName
+                                }
+                            }
+                            userErrors {
+                                field
+                                message
+                            }
+                        }
+                    }
+                GRAPHQL;
+
+                $updateResp = $this->client->query($mutationProductUpdate, [
+                    "input" => [
+                        "id" => $productId,
+                        "category" => $categoryId
+                    ]
+                ]);
+
+                $response['setCategory'] = $updateResp;
+
+                // Avisar si hubo errores al setear la categoría
+                if (!empty($updateResp['productUpdate']['userErrors'])) {
+                    $response['setCategoryErrors'] = $updateResp['productUpdate']['userErrors'];
+                    // Si el error es "Field is not defined on ProductInput" -> API version / permisos
+                    // lo dejamos visible en la respuesta para debugging.
+                }
+            } 
+        }
+        // ======= FIN: asignar categoría =======
+
+
         return $response;
     }
     /**
