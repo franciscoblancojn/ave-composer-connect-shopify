@@ -34,6 +34,16 @@ class ShopifyGraphQLProduct
         $this->client = $client;
     }
 
+    function normalizeProductId($product_id)
+    {
+        // Si ya viene en formato GID, lo retornamos tal cual
+        if (str_starts_with($product_id, 'gid://shopify/Product/')) {
+            return $product_id;
+        }
+
+        // Si solo viene el número, lo formateamos
+        return "gid://shopify/Product/{$product_id}";
+    }
     /**
      * Obtiene una lista de productos desde Shopify.
      * 
@@ -798,7 +808,7 @@ class ShopifyGraphQLProduct
                     // Si el error es "Field is not defined on ProductInput" -> API version / permisos
                     // lo dejamos visible en la respuesta para debugging.
                 }
-            } 
+            }
         }
         // ======= FIN: asignar categoría =======
 
@@ -922,17 +932,7 @@ class ShopifyGraphQLProduct
         GRAPHQL;
 
         $product_id = $data["product"]['id'];
-        function normalizeProductId($product_id)
-        {
-            // Si ya viene en formato GID, lo retornamos tal cual
-            if (str_starts_with($product_id, 'gid://shopify/Product/')) {
-                return $product_id;
-            }
-
-            // Si solo viene el número, lo formateamos
-            return "gid://shopify/Product/{$product_id}";
-        }
-        $product_id = normalizeProductId($product_id);
+        $product_id = $this->normalizeProductId($product_id);
 
         $productInput = [
             "id"            => $product_id,
