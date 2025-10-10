@@ -66,11 +66,11 @@ class ShopifyGraphQLOrder
         $response = $this->client->query($mutation, $variables);
 
         if (
-            isset($response['data']['orderCancel']['userErrors']) &&
-            count($response['data']['orderCancel']['userErrors']) > 0
+            isset($response['orderCancel']['userErrors']) &&
+            count($response['orderCancel']['userErrors']) > 0
         ) {
             throw new \Exception(
-                "Shopify API error: " . json_encode($response['data']['orderCancel']['userErrors'])
+                "Shopify API error: " . json_encode($response['orderCancel']['userErrors'])
             );
         }
 
@@ -227,40 +227,70 @@ class ShopifyGraphQLOrder
 
         $response = $this->client->query($query);
 
-        return $response['data']['locations']['nodes'][0]['id'] ?? null;
+        return $response['locations']['nodes'][0]['id'] ?? null;
     }
     public function getFulfillmentOrderId(string $orderId): ?string
     {
         $query = <<<GRAPHQL
             query getFulfillmentOrders(\$orderId: ID!) {
                 order(id: \$orderId) {
-                    fulfillmentOrders(first: 1) {
+                    id
+                    name
+                    fulfillmentOrders(first: 10) {
                         nodes {
                             id
+                            status
+                            assignedLocation {
+                                location {
+                                    id
+                                    name
+                                }
+                            }
+                            lineItems(first: 10) {
+                                nodes {
+                                    id
+                                    remainingQuantity
+                                    totalQuantity
+                                    lineItem {
+                                        title
+                                        fulfillableQuantity
+                                        requiresShipping
+                                    }
+                                }
+                            }
                         }
                     }
                 }
             }
         GRAPHQL;
 
+        // 🔹 Ejecutamos la query
         $response = $this->client->query($query, [
             'orderId' => $this->normalizeOrderId($orderId),
         ]);
 
-        return $response['data']['order']['fulfillmentOrders']['nodes'][0]['id'] ?? null;
+        // 🔹 Validaciones
+        if (empty($response['order'])) {
+            throw new \Exception("No se encontró la orden con ID {$orderId} en Shopify.");
+        }
+
+        $fulfillmentOrders = $response['order']['fulfillmentOrders']['nodes'] ?? [];
+
+        if (empty($fulfillmentOrders)) {
+            throw new \Exception("La orden {$orderId} no tiene fulfillment orders (posiblemente no requiere envío o aún no se asignó ubicación).");
+        }
+
+        // 🔹 Devuelve el primero (puedes ajustar esto si necesitas otro criterio)
+        return $fulfillmentOrders[0]['id'] ?? null;
     }
+
     public function fulfillOrder(string $orderId, ?string $trackingNumber = null, ?string $trackingUrl = null): array
     {
         $fulfillmentOrderId = $this->getFulfillmentOrderId($orderId);
         if (!$fulfillmentOrderId) {
             throw new \Exception("No se encontró el Fulfillment Order para la orden {$orderId}");
         }
-
-        $locationId = $this->getLocationId();
-        if (!$locationId) {
-            throw new \Exception("No se encontró ninguna ubicación activa en la tienda.");
-        }
-
+        
         $mutation = <<<GRAPHQL
             mutation FulfillmentCreateV2(\$fulfillment: FulfillmentV2Input!) {
                 fulfillmentCreateV2(fulfillment: \$fulfillment) {
@@ -282,7 +312,6 @@ class ShopifyGraphQLOrder
 
         $variables = [
             'fulfillment' => [
-                'locationId' => $locationId,
                 'trackingInfo' => [
                     'number' => $trackingNumber,
                     'url' => $trackingUrl,
