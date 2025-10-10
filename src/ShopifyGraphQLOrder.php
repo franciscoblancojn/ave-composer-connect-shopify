@@ -13,6 +13,16 @@ class ShopifyGraphQLOrder
         $this->client = $client;
     }
 
+    function normalizeOrderId($order_id)
+    {
+        // Si ya viene en formato GID, lo retornamos tal cual
+        if (str_starts_with($order_id, 'gid://shopify/Order/')) {
+            return $order_id;
+        }
+
+        // Si solo viene el número, lo formateamos
+        return "gid://shopify/Order/{$order_id}";
+    }
     /**
      * Cancela una orden en Shopify vía API GraphQL
      *
@@ -33,18 +43,18 @@ class ShopifyGraphQLOrder
         }
 
         $mutation = <<<GRAPHQL
-    mutation orderCancel(\$orderId: ID!, \$reason: OrderCancelReason!, \$refund: Boolean, \$restock: Boolean!) {
-      orderCancel(orderId: \$orderId, reason: \$reason, refund: \$refund, restock: \$restock) {
-        job {
-          id
-        }
-        userErrors {
-          field
-          message
-        }
-      }
-    }
-    GRAPHQL;
+            mutation orderCancel(\$orderId: ID!, \$reason: OrderCancelReason!, \$refund: Boolean, \$restock: Boolean!) {
+                orderCancel(orderId: \$orderId, reason: \$reason, refund: \$refund, restock: \$restock) {
+                    job {
+                        id
+                    }
+                    userErrors {
+                        field
+                        message
+                    }
+                }
+            }
+        GRAPHQL;
 
         $variables = [
             'orderId' => "gid://shopify/Order/" . $orderId,
@@ -67,16 +77,6 @@ class ShopifyGraphQLOrder
         return $response ?? [];
     }
 
-    function normalizeOrderId($order_id)
-    {
-        // Si ya viene en formato GID, lo retornamos tal cual
-        if (str_starts_with($order_id, 'gid://shopify/Order/')) {
-            return $order_id;
-        }
-
-        // Si solo viene el número, lo formateamos
-        return "gid://shopify/Order/{$order_id}";
-    }
     public function validatorNote()
     {
         return FValidator("order.note")->isObject([
@@ -156,5 +156,184 @@ class ShopifyGraphQLOrder
             'input' => $data['order'],
         ]);
         return $response;
+    }
+
+
+
+    public function closeOrder(string $orderId): array
+    {
+        $mutation = <<<GRAPHQL
+            mutation OrderClose(\$orderId: ID!) {
+                orderClose(id: \$orderId) {
+                    order {
+                        id
+                        closedAt
+                    }
+                    userErrors {
+                        field
+                        message
+                    }
+                }
+            }
+        GRAPHQL;
+
+        $variables = [
+            'orderId' => $this->normalizeOrderId($orderId),
+        ];
+
+        $response = $this->client->query($mutation, $variables);
+        return $response;
+    }
+
+    public function openOrder(string $orderId): array
+    {
+        $mutation = <<<GRAPHQL
+            mutation OrderOpen(\$orderId: ID!) {
+                orderOpen(id: \$orderId) {
+                    order {
+                        id
+                        closedAt
+                    }
+                    userErrors {
+                        field
+                        message
+                    }
+                }
+            }
+        GRAPHQL;
+
+        $variables = [
+            'orderId' => $this->normalizeOrderId($orderId),
+        ];
+
+        $response = $this->client->query($mutation, $variables);
+        return $response;
+    }
+    public function archiveOrder(string $orderId): array
+    {
+        $mutation = <<<GRAPHQL
+            mutation OrderArchive(\$orderId: ID!) {
+                orderArchive(id: \$orderId) {
+                    userErrors {
+                        field
+                        message
+                    }
+                }
+            }
+        GRAPHQL;
+
+        $variables = [
+            'orderId' => $this->normalizeOrderId($orderId),
+        ];
+
+        $response = $this->client->query($mutation, $variables);
+        return $response;
+    }
+    public function unarchiveOrder(string $orderId): array
+    {
+        $mutation = <<<GRAPHQL
+            mutation OrderUnarchive(\$orderId: ID!) {
+                orderUnarchive(id: \$orderId) {
+                    userErrors {
+                        field
+                        message
+                    }
+                }
+            }
+        GRAPHQL;
+
+        $variables = [
+            'orderId' => $this->normalizeOrderId($orderId),
+        ];
+
+        $response = $this->client->query($mutation, $variables);
+        return $response;
+    }
+    public function getLocationId(): ?string
+    {
+        $query = <<<GRAPHQL
+            query getLocations {
+                locations(first: 1) {
+                    nodes {
+                        id
+                        name
+                    }
+                }
+            }
+        GRAPHQL;
+
+        $response = $this->client->query($query);
+
+        return $response['data']['locations']['nodes'][0]['id'] ?? null;
+    }
+
+    public function getFulfillmentOrderId(string $orderId): ?string
+    {
+        $query = <<<GRAPHQL
+            query getFulfillmentOrders(\$orderId: ID!) {
+                order(id: \$orderId) {
+                    fulfillmentOrders(first: 1) {
+                        nodes {
+                            id
+                        }
+                    }
+                }
+            }
+        GRAPHQL;
+
+        $response = $this->client->query($query, [
+            'orderId' => $this->normalizeOrderId($orderId),
+        ]);
+
+        return $response['data']['order']['fulfillmentOrders']['nodes'][0]['id'] ?? null;
+    }
+
+    public function fulfillOrder(string $orderId, ?string $trackingNumber = null, ?string $trackingUrl = null): array
+    {
+        $fulfillmentOrderId = $this->getFulfillmentOrderId($orderId);
+        if (!$fulfillmentOrderId) {
+            throw new \Exception("No se encontró el Fulfillment Order para la orden {$orderId}");
+        }
+
+        $locationId = $this->getLocationId();
+        if (!$locationId) {
+            throw new \Exception("No se encontró ninguna ubicación activa en la tienda.");
+        }
+
+        $mutation = <<<GRAPHQL
+            mutation FulfillmentCreateV2(\$fulfillment: FulfillmentV2Input!) {
+                fulfillmentCreateV2(fulfillment: \$fulfillment) {
+                    fulfillment {
+                        id
+                        status
+                        trackingInfo {
+                            number
+                            url
+                        }
+                    }
+                    userErrors {
+                        field
+                        message
+                    }
+                }
+            }
+        GRAPHQL;
+
+        $variables = [
+            'fulfillment' => [
+                'locationId' => $locationId,
+                'trackingInfo' => [
+                    'number' => $trackingNumber,
+                    'url' => $trackingUrl,
+                ],
+                'lineItemsByFulfillmentOrder' => [
+                    [
+                        'fulfillmentOrderId' => $fulfillmentOrderId,
+                    ],
+                ],
+            ],
+        ];
+
+        return $this->client->query($mutation, $variables);
     }
 }
