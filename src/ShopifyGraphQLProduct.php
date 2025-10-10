@@ -44,6 +44,16 @@ class ShopifyGraphQLProduct
         // Si solo viene el número, lo formateamos
         return "gid://shopify/Product/{$product_id}";
     }
+    function normalizeVariantId($variant_id)
+    {
+        $variant_id = (string)$variant_id;
+        // Si ya viene en formato GID, lo retornamos tal cual
+        if (str_starts_with($variant_id, 'gid://shopify/ProductVariant/')) {
+            return $variant_id;
+        }
+        // Si solo viene el número, lo formateamos
+        return "gid://shopify/ProductVariant/{$variant_id}";
+    }
     /**
      * Obtiene una lista de productos desde Shopify.
      * 
@@ -995,16 +1005,6 @@ class ShopifyGraphQLProduct
         // 3️⃣ Actualizar variantes (si las hay)
         if (!empty($data["product"]["variants"])) {
 
-            function normalizeVariantId($variant_id)
-            {
-                $variant_id = (string)$variant_id;
-                // Si ya viene en formato GID, lo retornamos tal cual
-                if (str_starts_with($variant_id, 'gid://shopify/ProductVariant/')) {
-                    return $variant_id;
-                }
-                // Si solo viene el número, lo formateamos
-                return "gid://shopify/ProductVariant/{$variant_id}";
-            }
 
             $mutationVariants = <<<GRAPHQL
                 mutation ProductVariantsBulkUpdate(\$productId: ID!, \$variants: [ProductVariantsBulkInput!]!) {
@@ -1035,7 +1035,7 @@ class ShopifyGraphQLProduct
             $variantsBulk = [];
             foreach ($data["product"]["variants"] as $variant) {
                 $variantData = [
-                    "id"             => normalizeVariantId($variant["id"]), // ⚠️ IMPORTANTE para actualizar
+                    "id"             => $this->normalizeVariantId($variant["id"]), // ⚠️ IMPORTANTE para actualizar
                     'inventoryItem' => [
                         'sku' => $variant['sku'],
                         'measurement' => [
