@@ -50,13 +50,6 @@ class AveConnectShopify
     public ShopifyOrder $order;
 
     /**
-     * Manejo de órdenes de Shopify.
-     *
-     * @var ShopifyGraphQLOrder
-     */
-    public ShopifyGraphQLOrder $orderGraphQL;
-
-    /**
      * Manejo de transacciones de Shopify.
      *
      * @var ShopifyTransaction
