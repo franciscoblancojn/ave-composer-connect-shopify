@@ -212,46 +212,6 @@ class ShopifyGraphQLOrder
         $response = $this->client->query($mutation, $variables);
         return $response;
     }
-    public function archiveOrder(string $orderId): array
-    {
-        $mutation = <<<GRAPHQL
-            mutation OrderMarkAsArchived(\$id: ID!) {
-                orderMarkAsArchived(id: \$id) {
-                    userErrors {
-                        field
-                        message
-                    }
-                }
-            }
-        GRAPHQL;
-
-        $variables = [
-            'id' => $this->normalizeOrderId($orderId),
-        ];
-
-        $response = $this->client->query($mutation, $variables);
-        return $response;
-    }
-    public function unarchiveOrder(string $orderId): array
-    {
-        $mutation = <<<GRAPHQL
-            mutation OrderMarkAsUnarchived(\$id: ID!) {
-                orderMarkAsUnarchived(id: \$id) {
-                    userErrors {
-                        field
-                        message
-                    }
-                }
-            }
-        GRAPHQL;
-
-        $variables = [
-            'id' => $this->normalizeOrderId($orderId),
-        ];
-
-        $response = $this->client->query($mutation, $variables);
-        return $response;
-    }
     public function getLocationId(): ?string
     {
         $query = <<<GRAPHQL
