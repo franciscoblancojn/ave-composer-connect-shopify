@@ -215,8 +215,8 @@ class ShopifyGraphQLOrder
     public function archiveOrder(string $orderId): array
     {
         $mutation = <<<GRAPHQL
-            mutation OrderArchive(\$input: OrderArchiveInput!) {
-                orderArchive(input: \$input) {
+            mutation OrderMarkAsArchived(\$id: ID!) {
+                orderMarkAsArchived(id: \$id) {
                     userErrors {
                         field
                         message
@@ -226,9 +226,7 @@ class ShopifyGraphQLOrder
         GRAPHQL;
 
         $variables = [
-            'input' => [
-                'id' => $this->normalizeOrderId($orderId),
-            ],
+            'id' => $this->normalizeOrderId($orderId),
         ];
 
         $response = $this->client->query($mutation, $variables);
@@ -237,8 +235,8 @@ class ShopifyGraphQLOrder
     public function unarchiveOrder(string $orderId): array
     {
         $mutation = <<<GRAPHQL
-            mutation OrderUnarchive(\$input: OrderUnarchiveInput!) {
-                orderUnarchive(input: \$input) {
+            mutation OrderMarkAsUnarchived(\$id: ID!) {
+                orderMarkAsUnarchived(id: \$id) {
                     userErrors {
                         field
                         message
@@ -248,9 +246,7 @@ class ShopifyGraphQLOrder
         GRAPHQL;
 
         $variables = [
-            'input' => [
-                'id' => $this->normalizeOrderId($orderId),
-            ],
+            'id' => $this->normalizeOrderId($orderId),
         ];
 
         $response = $this->client->query($mutation, $variables);
