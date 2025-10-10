@@ -184,7 +184,6 @@ class ShopifyGraphQLOrder
         $response = $this->client->query($mutation, $variables);
         return $response;
     }
-
     public function openOrder(string $orderId): array
     {
         $mutation = <<<GRAPHQL
@@ -266,7 +265,6 @@ class ShopifyGraphQLOrder
 
         return $response['data']['locations']['nodes'][0]['id'] ?? null;
     }
-
     public function getFulfillmentOrderId(string $orderId): ?string
     {
         $query = <<<GRAPHQL
@@ -287,7 +285,6 @@ class ShopifyGraphQLOrder
 
         return $response['data']['order']['fulfillmentOrders']['nodes'][0]['id'] ?? null;
     }
-
     public function fulfillOrder(string $orderId, ?string $trackingNumber = null, ?string $trackingUrl = null): array
     {
         $fulfillmentOrderId = $this->getFulfillmentOrderId($orderId);
