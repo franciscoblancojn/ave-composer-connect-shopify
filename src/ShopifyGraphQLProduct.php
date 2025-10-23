@@ -388,6 +388,14 @@ class ShopifyGraphQLProduct
             'tags' => $data['product']['tags'] ?? null,
             'status' => $data['product']['status'] ?? null,
             'productOptions' => $productOptions,
+            'metafields' => empty($data['product']['created_by']) ? [] : [
+                [
+                    'namespace' => "internal",
+                    'key' => "created_by",
+                    'value' => $data['product']['created_by'],
+                    'type' => "single_line_text_field"
+                ]
+            ]
         ];
 
         $response = $this->client->query($mutationProduct, [
