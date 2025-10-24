@@ -504,6 +504,12 @@ class ShopifyGraphQLProduct
                 if ($imageId) {
                     $variantData['mediaId'] = $imageId;
                 }
+                if (empty($options)) {
+                    $options[] = [
+                        "name" => "default_variant",
+                        "optionName" => 'default_variant',
+                    ];
+                }
                 $variantData['optionValues'] = $options;
                 $variantsBulk[] = $variantData;
             }
