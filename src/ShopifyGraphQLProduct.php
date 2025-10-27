@@ -36,23 +36,17 @@ class ShopifyGraphQLProduct
 
     function normalizeProductId($product_id)
     {
-        // Si ya viene en formato GID, lo retornamos tal cual
-        if (str_starts_with($product_id, 'gid://shopify/Product/')) {
-            return $product_id;
-        }
-
+        // Remplazar todo lo que no sea numero
+        $value = preg_replace('/\D/', '', $product_id);
         // Si solo viene el número, lo formateamos
-        return "gid://shopify/Product/{$product_id}";
+        return "gid://shopify/Product/{$value}";
     }
     function normalizeVariantId($variant_id)
     {
-        $variant_id = (string)$variant_id;
-        // Si ya viene en formato GID, lo retornamos tal cual
-        if (str_starts_with($variant_id, 'gid://shopify/ProductVariant/')) {
-            return $variant_id;
-        }
+        // Remplazar todo lo que no sea numero
+        $value = preg_replace('/\D/', '', $variant_id);
         // Si solo viene el número, lo formateamos
-        return "gid://shopify/ProductVariant/{$variant_id}";
+        return "gid://shopify/ProductVariant/{$value}";
     }
     /**
      * Obtiene una lista de productos desde Shopify.
@@ -958,6 +952,7 @@ class ShopifyGraphQLProduct
         $product_id = $data["product"]['id'];
         $product_id = $this->normalizeProductId($product_id);
 
+
         $productInput = [
             "id"            => $product_id,
             "title"         => $data["product"]["title"] ?? null,
@@ -1009,7 +1004,7 @@ class ShopifyGraphQLProduct
             }
 
             $imagesResult = $this->client->query($mutationImage, [
-                "productId" => $data['product']['id'],
+                "productId" => $product_id,
                 "media"     => $imagesSends,
             ]);
             $response["imagesSends"] = $imagesSends;
@@ -1076,7 +1071,7 @@ class ShopifyGraphQLProduct
             }
 
             $variantsResult = $this->client->query($mutationVariants, [
-                "productId" => $data['product']['id'],
+                "productId" => $product_id,
                 "variants"  => $variantsBulk,
             ]);
 
