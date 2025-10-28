@@ -1,11 +1,11 @@
 {
   "name": "franciscoblancojn-ave-composer-connect-shopify",
   "description": "Libreria para conectar con Shopify",
-  "version": "1.5.5",
+  "version": "1.5.6",
   "main": "index.js",
   "scripts": {
     "update": "rm -rf vendor && rm composer.lock && composer install",
-    "push-tag": "git tag v1.5.5 && git push origin v1.5.5"
+    "push-tag": "git tag v1.5.6 && git push origin v1.5.6"
   },
   "repository": {
     "type": "git",
