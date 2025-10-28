@@ -831,27 +831,62 @@ class ShopifyGraphQLProduct
         // ======= FIN: asignar categoría =======
 
         // ======= NUEVA SECCIÓN: publicar producto en "Tienda online" =======
-        if ($productId && 1 == 2) {
-            $mutationPublish = <<<GRAPHQL
-                mutation publishProductToAll(\$id: ID!) {
-                    publishablePublish(id: \$id, input: {}) {
-                        publishable {
-                            ... on Product {
+        if ($productId) {
+            // 1️⃣ Obtener el ID de la publicación "Online Store"
+            $queryPublications = <<<GRAPHQL
+                query {
+                    publications(first: 10) {
+                        edges {
+                            node {
                                 id
-                                title
-                                handle
+                                name
                             }
-                        }
-                        userErrors {
-                            field
-                            message
                         }
                     }
                 }
             GRAPHQL;
 
-            $publishResponse = $this->client->query($mutationPublish, ["id" => $productId]);
-            $response['publishResponse'] = $publishResponse;
+            $pubResponse = $this->client->query($queryPublications);
+            $publications = $pubResponse['publications']['edges'] ?? [];
+
+            $onlineStorePublicationId = null;
+            foreach ($publications as $pub) {
+                if (isset($pub['node']['name']) && stripos($pub['node']['name'], 'online store') !== false) {
+                    $onlineStorePublicationId = $pub['node']['id'];
+                    break;
+                }
+            }
+            if($onlineStorePublicationId == null){
+                $onlineStorePublicationId = $publications[0]['node']['id'] ?? null;
+            }
+
+            // 2️⃣ Si encontramos la publicación, publicar el producto
+            if ($onlineStorePublicationId) {
+                $mutationPublish = <<<GRAPHQL
+                    mutation publishProductToOnlineStore(\$id: ID!, \$publicationId: ID!) {
+                        publishablePublish(id: \$id, input: { publicationId: \$publicationId }) {
+                            publishable {
+                                publishedOnPublication(publicationId: \$publicationId)
+                            }
+                            userErrors {
+                                field
+                                message
+                            }
+                        }
+                    }
+                GRAPHQL;
+
+                $publishResponse = $this->client->query($mutationPublish, [
+                    "id" => $productId,
+                    "publicationId" => $onlineStorePublicationId
+                ]);
+
+                $response['publishResponse'] = $publishResponse;
+            } else {
+                $response['publishResponse'] = [
+                    'error' => 'No se encontró la publicación "Online Store".'
+                ];
+            }
         }
 
         return $response;
