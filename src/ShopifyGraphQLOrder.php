@@ -15,13 +15,9 @@ class ShopifyGraphQLOrder
 
     function normalizeOrderId($order_id)
     {
-        // Si ya viene en formato GID, lo retornamos tal cual
-        if (str_starts_with($order_id, 'gid://shopify/Order/')) {
-            return $order_id;
-        }
-
+        $value = preg_replace('/\D/', '', $order_id);
         // Si solo viene el número, lo formateamos
-        return "gid://shopify/Order/{$order_id}";
+        return "gid://shopify/Order/{$value}";
     }
     /**
      * Cancela una orden en Shopify vía API GraphQL
