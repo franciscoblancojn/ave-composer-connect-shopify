@@ -30,12 +30,6 @@ class ShopifyGraphQLMetafield
             'ownerId' => FValidator('ownerId')
                 ->isRequired('El ownerId es obligatorio')
                 ->isString('El ownerId debe ser texto'),
-            'namespace' => FValidator('namespace')
-                ->isRequired('El namespace es obligatorio')
-                ->isString('El namespace debe ser texto'),
-            'key' => FValidator('key')
-                ->isRequired('El key es obligatorio')
-                ->isString('El key debe ser texto'),
             'value' => FValidator('value')
                 ->isRequired('El value es obligatorio')
                 ->isObject('El value debe ser texto'),
@@ -44,7 +38,7 @@ class ShopifyGraphQLMetafield
     }
     public function set(array $data): array
     {
-        $this->validatorSet()->validate($data);
+        // $this->validatorSet()->validate($data);
         $mutationProduct = <<<GRAPHQL
             mutation metafieldsSet(\$metafields: [MetafieldsSetInput!]!) {
                 metafieldsSet(metafields: \$metafields) {
@@ -67,8 +61,8 @@ class ShopifyGraphQLMetafield
             'metafields' => [
                 [
                     "ownerId" => $data['ownerId'],
-                    "namespace" => $data['namespace'] ?? AveConnectShopify_namespace,
-                    "key" => $data['key'] ?? AveConnectShopify_key,
+                    "namespace" => $data['namespace'] ?? AveConnectShopifyConst::$namespace,
+                    "key" => $data['key'] ?? AveConnectShopifyConst::$key,
                     "type" => "json",
                     "value" => json_encode($data['value']),
                 ]
