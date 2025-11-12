@@ -126,7 +126,7 @@ class ShopifyGraphQLOrder
         ]);
         // save metafield
         if ($data['order']['id']) {
-            $this->sync($data['order']['id'],"completed","Sincronizado correctamente");
+            $response["sync"] = $this->sync($data['order']['id'], "completed", "Sincronizado correctamente");
         }
         return $response;
     }
@@ -303,7 +303,7 @@ class ShopifyGraphQLOrder
         if (!$fulfillmentOrderId) {
             throw new \Exception("No se encontró el Fulfillment Order para la orden {$orderId}");
         }
-        
+
         $mutation = <<<GRAPHQL
             mutation FulfillmentCreateV2(\$fulfillment: FulfillmentV2Input!) {
                 fulfillmentCreateV2(fulfillment: \$fulfillment) {
@@ -339,9 +339,9 @@ class ShopifyGraphQLOrder
 
         return $this->client->query($mutation, $variables);
     }
-    public function sync(string $id,string $status,string $message)
+    public function sync(string $id, string $status, string $message)
     {
-        $this->metafield->set([
+        return $this->metafield->set([
             "ownerId" => $this->normalizeOrderId($id),
             "value" => [
                 "status" => $status,

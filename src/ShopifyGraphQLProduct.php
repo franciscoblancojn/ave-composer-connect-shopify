@@ -898,7 +898,7 @@ class ShopifyGraphQLProduct
 
         // save metafield
         if ($productId) {
-            $this->sync($productId,"completed","Sincronizado correctamente");
+            $response["sync"] = $this->sync($productId, "completed", "Sincronizado correctamente");
         }
 
         return $response;
@@ -1232,7 +1232,7 @@ class ShopifyGraphQLProduct
 
         // save metafield
         if ($product_id) {
-            $this->sync($product_id,"completed","Sincronizado correctamente");
+            $response["sync"] = $this->sync($product_id, "completed", "Sincronizado correctamente");
         }
         return $response;
     }
@@ -1264,9 +1264,9 @@ class ShopifyGraphQLProduct
     }
 
 
-    public function sync(string $id,string $status,string $message)
+    public function sync(string $id, string $status, string $message)
     {
-        $this->metafield->set([
+        return $this->metafield->set([
             "ownerId" => $this->normalizeProductId($id),
             "value" => [
                 "status" => $status,
