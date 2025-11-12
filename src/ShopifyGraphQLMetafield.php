@@ -58,19 +58,17 @@ class ShopifyGraphQLMetafield
         GRAPHQL;
 
         $dataInput = [
-            'metafields' => [
-                [
-                    "ownerId" => $data['ownerId'],
-                    "namespace" => $data['namespace'] ?? AveConnectShopifyConst::$namespace,
-                    "key" => $data['key'] ?? AveConnectShopifyConst::$key,
-                    "type" => "json",
-                    "value" => json_encode($data['value']),
-                ]
+            [
+                "ownerId" => $data['ownerId'],
+                "namespace" => $data['namespace'] ?? AveConnectShopifyConst::$namespace,
+                "key" => $data['key'] ?? AveConnectShopifyConst::$key,
+                "type" => "json",
+                "value" => json_encode($data['value']),
             ]
         ];
 
         $response = $this->client->query($mutationProduct, [
-            'input' => $dataInput,
+            'metafields' => $dataInput,
         ]);
 
         return $response;
