@@ -6,11 +6,24 @@ use function franciscoblancojn\validator\FValidator;
 
 class ShopifyGraphQLOrder
 {
+    /**
+     * Cliente HTTP para interactuar con la API de Shopify.
+     *
+     * @var ShopifyGraphQLClient
+     */
     private ShopifyGraphQLClient $client;
+
+    /**
+     * Cliente HTTP para interactuar con la API de Shopify.
+     *
+     * @var ShopifyGraphQLMetafield
+     */
+    private ShopifyGraphQLMetafield $metafield;
 
     public function __construct(ShopifyGraphQLClient $client)
     {
         $this->client = $client;
+        $this->metafield = new ShopifyGraphQLMetafield($client);
     }
 
     function normalizeOrderId($order_id)
@@ -111,6 +124,10 @@ class ShopifyGraphQLOrder
         $response = $this->client->query($mutationNote, [
             'input' => $data['order'],
         ]);
+        // save metafield
+        if ($data['order']['id']) {
+            $this->sync($data['order']['id'],"completed","Sincronizado correctamente");
+        }
         return $response;
     }
     public function validatorTimelineComment()
@@ -321,5 +338,15 @@ class ShopifyGraphQLOrder
         ];
 
         return $this->client->query($mutation, $variables);
+    }
+    public function sync(string $id,string $status,string $message)
+    {
+        $this->metafield->set([
+            "ownerId" => $this->normalizeOrderId($id),
+            "value" => [
+                "status" => $status,
+                "message" => $message
+            ]
+        ]);
     }
 }

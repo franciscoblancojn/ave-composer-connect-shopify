@@ -25,6 +25,12 @@ class ShopifyGraphQLProduct
     private ShopifyGraphQLClient $client;
 
     /**
+     * Cliente HTTP para interactuar con la API de Shopify.
+     *
+     * @var ShopifyGraphQLMetafield
+     */
+    private ShopifyGraphQLMetafield $metafield;
+    /**
      * Constructor de la clase.
      *
      * @param ShopifyGraphQLClient $client Cliente configurado con token y shop URL.
@@ -32,6 +38,7 @@ class ShopifyGraphQLProduct
     public function __construct(ShopifyGraphQLClient $client)
     {
         $this->client = $client;
+        $this->metafield = new ShopifyGraphQLMetafield($client);
     }
 
     function normalizeProductId($product_id)
@@ -856,7 +863,7 @@ class ShopifyGraphQLProduct
                     break;
                 }
             }
-            if($onlineStorePublicationId == null){
+            if ($onlineStorePublicationId == null) {
                 $onlineStorePublicationId = $publications[0]['node']['id'] ?? null;
             }
 
@@ -887,6 +894,11 @@ class ShopifyGraphQLProduct
                     'error' => 'No se encontró la publicación "Online Store".'
                 ];
             }
+        }
+
+        // save metafield
+        if ($productId) {
+            $this->sync($productId,"completed","Sincronizado correctamente");
         }
 
         return $response;
@@ -1216,6 +1228,12 @@ class ShopifyGraphQLProduct
                 $response['collectResponse'] = $collectResponse;
             }
         }
+
+
+        // save metafield
+        if ($product_id) {
+            $this->sync($product_id,"completed","Sincronizado correctamente");
+        }
         return $response;
     }
 
@@ -1242,6 +1260,18 @@ class ShopifyGraphQLProduct
 
         return $this->client->query($mutation, [
             'input' => ['id' => $id],
+        ]);
+    }
+
+
+    public function sync(string $id,string $status,string $message)
+    {
+        $this->metafield->set([
+            "ownerId" => $this->normalizeProductId($id),
+            "value" => [
+                "status" => $status,
+                "message" => $message
+            ]
         ]);
     }
 }
