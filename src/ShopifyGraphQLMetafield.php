@@ -67,8 +67,8 @@ class ShopifyGraphQLMetafield
             'metafields' => [
                 [
                     "ownerId" => $data['ownerId'],
-                    "namespace" => $data['namespace'] ?? $AveConnectShopify_namespace,
-                    "key" => $data['key'] ?? $AveConnectShopify_key,
+                    "namespace" => $data['namespace'] ?? AveConnectShopify_namespace,
+                    "key" => $data['key'] ?? AveConnectShopify_key,
                     "type" => "json",
                     "value" => json_encode($data['value']),
                 ]
