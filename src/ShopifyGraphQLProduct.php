@@ -1264,6 +1264,7 @@ class ShopifyGraphQLProduct
     }
 
 
+
     public function sync(string $id, string $status, string $message)
     {
         return $this->metafield->set([
@@ -1277,8 +1278,21 @@ class ShopifyGraphQLProduct
 
 
 
+    public function validatorPutStock()
+    {
+        return FValidator("product.putStock")->isObject([
+            "product_id" => FValidator("product_id")
+                ->isRequired("El product_id es obligatorio")
+                ->isString("El product_id debe ser un string"),
+            "variant_id" => FValidator("variant_id")
+                ->isRequired("El variant_id es obligatorio")
+                ->isString("El variant_id debe ser un string"),
+        ], "El producto debe ser un objeto válido");
+    }
     public function putStock(array $data): array
     {
+        $this->validatorPutStock()->validate($data);
+
         $product_id = $this->normalizeProductId($data['product_id']);
         $variant_id = $this->normalizeVariantId($data['variant_id']);
         $quantity = (int)($data['quantity'] ?? 0);
