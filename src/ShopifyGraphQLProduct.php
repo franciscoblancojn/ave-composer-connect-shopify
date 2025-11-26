@@ -1277,18 +1277,95 @@ class ShopifyGraphQLProduct
     }
 
 
-
+    /**
+     * Valida la estructura de datos requerida para actualizar el stock de un producto.
+     *
+     * Este validador asegura que:
+     * - `product_id` esté presente y sea un string.
+     * - `variant_id` esté presente y sea un string.
+     *
+     * @return \FValidator
+     *         Retorna un validador configurado que valida el payload para putStock().
+     */
     public function validatorPutStock()
     {
         return FValidator("product.putStock")->isObject([
             "product_id" => FValidator("product_id")
                 ->isRequired("El product_id es obligatorio")
                 ->isString("El product_id debe ser un string"),
+
             "variant_id" => FValidator("variant_id")
                 ->isRequired("El variant_id es obligatorio")
                 ->isString("El variant_id debe ser un string"),
         ], "El producto debe ser un objeto válido");
     }
+
+    /**
+     * Actualiza el stock de una variante específica usando Shopify GraphQL.
+     *
+     * Flujo del proceso:
+     * -------------------
+     * 1. **Validación de datos**  
+     *    Se valida que el objeto `$data` contenga:
+     *      - `product_id` (ID del producto en Shopify)
+     *      - `variant_id` (ID de la variante a modificar)
+     *      - `quantity` (cantidad final a establecer)
+     *
+     * 2. **Normalización de IDs**  
+     *    Convierte los IDs entregados por el cliente al formato requerido por Shopify
+     *    (`gid://shopify/Product/...` y `gid://shopify/ProductVariant/...`).
+     *
+     * 3. **Obtener ubicación (Location)**  
+     *    Shopify requiere siempre una ubicación para actualizar inventario.  
+     *    Se consulta la primera ubicación disponible:
+     *    - Si no existe ninguna, se lanza una excepción con un mensaje claro.
+     *
+     * 4. **Obtener variantes del producto**  
+     *    Se consultan las variantes del producto (`variants(first: 100)`),
+     *    y se busca aquella cuyo `id` coincide con el `variant_id` proporcionado.
+     *
+     *    Si no existe, se lanza una excepción `"Variant not found"`.
+     *
+     * 5. **Obtener inventoryItemId**  
+     *    De la variante seleccionada se extrae el `inventoryItem.id`, necesario para
+     *    modificar inventarios en Shopify.
+     *
+     *    Si no existe, se lanza una excepción.
+     *
+     * 6. **Actualizar el inventario**  
+     *    Se ejecuta la mutación `inventorySetQuantities`, que establece el stock
+     *    exacto en la ubicación especificada, ignorando cantidades previas.
+     *
+     *    Parámetros enviados:
+     *      - `reason`: motivo del ajuste (`correction`)
+     *      - `ignoreCompareQuantity`: true (permite sobrescribir directamente)
+     *      - `name`: `on_hand`
+     *      - `quantities`: lista con:
+     *            - inventoryItemId
+     *            - locationId
+     *            - quantity (cantidad final deseada)
+     *
+     * 7. **Retornar el resultado**  
+     *    Devuelve la respuesta completa generada por Shopify.
+     *
+     *
+     * @param array $data
+     *      Estructura esperada:
+     *      [
+     *          "product_id" => string  Shopify Product GID o ID simple,
+     *          "variant_id" => string  Shopify Variant GID o ID simple,
+     *          "quantity"   => int     Cantidad final deseada
+     *      ]
+     *
+     * @return array
+     *      Respuesta devuelta por Shopify después del ajuste de inventario.
+     *
+     * @throws \Exception
+     *      - Si la validación falla.
+     *      - Si no existen locations configuradas en la tienda.
+     *      - Si la variante no existe.
+     *      - Si no se puede obtener el inventoryItemId.
+     */
     public function putStock(array $data): array
     {
         $this->validatorPutStock()->validate($data);
@@ -1296,7 +1373,8 @@ class ShopifyGraphQLProduct
         $product_id = $this->normalizeProductId($data['product_id']);
         $variant_id = $this->normalizeVariantId($data['variant_id']);
         $quantity = (int)($data['quantity'] ?? 0);
-        // Guardar inventario después de crear variantes
+
+        // 1. Obtener Location
         $locationQuery = <<<GRAPHQL
             query {
                 locations(first: 1) {
@@ -1309,14 +1387,20 @@ class ShopifyGraphQLProduct
                 }
             }
         GRAPHQL;
+
         $locResponse = $this->client->query($locationQuery);
         $locations = $locResponse['locations']['edges'] ?? [];
+
         if (empty($locations)) {
-            throw new \Exception("No existen ubicaciones configuradas en la tienda. Agregue al menos una en Shopify Admin → Settings → Locations.");
+            throw new \Exception(
+                "No existen ubicaciones configuradas en la tienda. " .
+                    "Agregue al menos una en Shopify Admin → Settings → Locations."
+            );
         }
+
         $locationId = $locations[0]['node']['id'];
 
-        //necesito obtener el inventoryItemId de la variante o producto a traves del variant_id y product_id
+        // 2. Obtener variantes del producto
         $queryVariant = <<<GRAPHQL
             query getProductVariant(\$productId: ID!) {
                 product(id: \$productId) {
@@ -1335,12 +1419,13 @@ class ShopifyGraphQLProduct
         GRAPHQL;
 
         $variantResponse = $this->client->query($queryVariant, [
-            "productId" => ($product_id),
+            "productId" => $product_id,
         ]);
+
         $variants = $variantResponse['data']['product']['variants']['edges'] ?? [];
 
+        // Buscar variante solicitada
         $variant = null;
-
         foreach ($variants as $v) {
             if ($v['node']['id'] === $variant_id) {
                 $variant = $v['node'];
@@ -1352,11 +1437,14 @@ class ShopifyGraphQLProduct
             throw new \Exception("Variant not found");
         }
 
+        // 3. Obtener inventoryItemId
         $inventoryItemId = $variant['inventoryItem']['id'] ?? null;
+
         if (!$inventoryItemId) {
             throw new \Exception("No se pudo obtener el inventoryItemId para la variante especificada.");
         }
 
+        // 4. Mutación para actualizar inventario
         $mutationAdjustInventory = <<<GRAPHQL
             mutation inventorySetQuantities(\$input: InventorySetQuantitiesInput!) {
                 inventorySetQuantities(input: \$input) {
@@ -1378,6 +1466,8 @@ class ShopifyGraphQLProduct
                 }
             }
         GRAPHQL;
+
+        // Ejecutar ajuste de inventario
         $result = $this->client->query($mutationAdjustInventory, [
             "input" => [
                 "reason" => "correction",
@@ -1392,6 +1482,7 @@ class ShopifyGraphQLProduct
                 ]
             ]
         ]);
+
         return $result;
     }
 }
