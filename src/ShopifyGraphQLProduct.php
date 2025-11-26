@@ -1274,4 +1274,110 @@ class ShopifyGraphQLProduct
             ]
         ]);
     }
+
+
+
+    public function putStock(array $data): array
+    {
+        $product_id = $this->normalizeProductId($data['product_id']);
+        $variant_id = $this->normalizeVariantId($data['variant_id']);
+        $quantity = (int)($data['quantity'] ?? 0);
+        // Guardar inventario después de crear variantes
+        $locationQuery = <<<GRAPHQL
+            query {
+                locations(first: 1) {
+                    edges {
+                        node {
+                            id
+                            name
+                        }
+                    }
+                }
+            }
+        GRAPHQL;
+        $locResponse = $this->client->query($locationQuery);
+        $locations = $locResponse['locations']['edges'] ?? [];
+        if (empty($locations)) {
+            throw new \Exception("No existen ubicaciones configuradas en la tienda. Agregue al menos una en Shopify Admin → Settings → Locations.");
+        }
+        $locationId = $locations[0]['node']['id'];
+
+        //necesito obtener el inventoryItemId de la variante o producto a traves del variant_id y product_id
+        $queryVariant = <<<GRAPHQL
+            query getProductVariant(\$productId: ID!) {
+                product(id: \$productId) {
+                    variants(first: 100) {
+                        edges {
+                            node {
+                                id
+                                inventoryItem {
+                                    id
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        GRAPHQL;
+
+        $variantResponse = $this->client->query($queryVariant, [
+            "productId" => ($product_id),
+        ]);
+        $variants = $variantResponse['data']['product']['variants']['edges'] ?? [];
+
+        $variant = null;
+
+        foreach ($variants as $v) {
+            if ($v['node']['id'] === $variant_id) {
+                $variant = $v['node'];
+                break;
+            }
+        }
+
+        if (!$variant) {
+            throw new \Exception("Variant not found");
+        }
+
+        $inventoryItemId = $variant['inventoryItem']['id'] ?? null;
+        if (!$inventoryItemId) {
+            throw new \Exception("No se pudo obtener el inventoryItemId para la variante especificada.");
+        }
+
+        $mutationAdjustInventory = <<<GRAPHQL
+            mutation inventorySetQuantities(\$input: InventorySetQuantitiesInput!) {
+                inventorySetQuantities(input: \$input) {
+                    userErrors {
+                        field
+                        message
+                    }
+                    inventoryAdjustmentGroup {
+                        reason
+                        changes {
+                            delta
+                            quantityAfterChange
+                            location {
+                                id
+                                name
+                            }
+                        }
+                    }
+                }
+            }
+        GRAPHQL;
+        $result = $this->client->query($mutationAdjustInventory, [
+            "input" => [
+                "reason" => "correction",
+                "ignoreCompareQuantity" => true,
+                "name" => "on_hand",
+                "quantities" => [
+                    [
+                        "inventoryItemId" => $inventoryItemId,
+                        "locationId" => $locationId,
+                        "quantity" => $quantity,
+                    ]
+                ]
+            ]
+        ]);
+        return $result;
+    }
 }
