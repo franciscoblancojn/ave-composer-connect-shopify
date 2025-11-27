@@ -1422,7 +1422,7 @@ class ShopifyGraphQLProduct
             "productId" => $product_id,
         ]);
 
-        $variants = $variantResponse['data']['product']['variants']['edges'] ?? [];
+        $variants = $variantResponse['product']['variants']['edges'] ?? [];
 
         // Buscar variante solicitada
         $variant = null;
