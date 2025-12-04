@@ -296,6 +296,59 @@ class ShopifyGraphQLOrder
         // 🔹 Devuelve el primero (puedes ajustar esto si necesitas otro criterio)
         return $fulfillmentOrders[0]['id'] ?? null;
     }
+    public function cancelOrder2(string $orderId, string $reason, bool $refund = false, bool $restock = true): array
+    {
+        $validReasons = ['CUSTOMER', 'DECLINED', 'FRAUD', 'INVENTORY', 'OTHER'];
+        if (!in_array($reason, $validReasons, true)) {
+            throw new \InvalidArgumentException(
+                "Reason inválido. Debe ser uno de: " . implode(', ', $validReasons)
+            );
+        }
+
+        $mutation = <<<GRAPHQL
+            mutation OrderCancel(\$orderId: ID!, \$notifyCustomer: Boolean, \$refundMethod: OrderCancelRefundMethodInput!, $restock: Boolean!, $reason: OrderCancelReason!) {
+                orderCancel(orderId: \$orderId, notifyCustomer: \$notifyCustomer, refundMethod: \$refundMethod, restock: $restock, reason: $reason) {
+                    job {
+                        id
+                        done
+                    }
+                    orderCancelUserErrors {
+                        field
+                        message
+                        code
+                    }
+                    userErrors {
+                        field
+                        message
+                    }
+                }
+                }
+        GRAPHQL;
+
+        $variables = [
+            'orderId' => $this->normalizeOrderId($orderId),
+            'notifyCustomer' => false,
+            "refundMethod" => [
+                "originalPaymentMethodsRefund" => $refund
+            ],
+            'restock' => $restock,
+            'reason'  => $reason,
+        ];
+
+        $response = $this->client->query($mutation, $variables);
+
+        if (
+            isset($response['orderCancel']['userErrors']) &&
+            count($response['orderCancel']['userErrors']) > 0
+        ) {
+            throw new \Exception(
+                "Shopify API error: " . json_encode($response['orderCancel']['userErrors'])
+            );
+        }
+
+        return $response ?? [];
+    }
+
 
     public function fulfillOrder(string $orderId, ?string $trackingNumber = null, ?string $trackingUrl = null): array
     {
