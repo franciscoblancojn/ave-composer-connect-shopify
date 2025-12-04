@@ -306,8 +306,20 @@ class ShopifyGraphQLOrder
         }
 
         $mutation = <<<GRAPHQL
-            mutation OrderCancel(\$orderId: ID!, \$notifyCustomer: Boolean, \$refundMethod: OrderCancelRefundMethodInput!, $restock: Boolean!, $reason: OrderCancelReason!) {
-                orderCancel(orderId: \$orderId, notifyCustomer: \$notifyCustomer, refundMethod: \$refundMethod, restock: $restock, reason: $reason) {
+            mutation OrderCancel(
+                \$orderId: ID!,
+                \$notifyCustomer: Boolean,
+                \$refundMethod: OrderCancelRefundMethodInput!,
+                \$restock: Boolean!,
+                \$reason: OrderCancelReason!
+            ) {
+                orderCancel(
+                    orderId: \$orderId,
+                    notifyCustomer: \$notifyCustomer,
+                    refundMethod: \$refundMethod,
+                    restock: \$restock,
+                    reason: \$reason
+                ) {
                     job {
                         id
                         done
@@ -322,7 +334,7 @@ class ShopifyGraphQLOrder
                         message
                     }
                 }
-                }
+            }
         GRAPHQL;
 
         $variables = [
@@ -348,6 +360,7 @@ class ShopifyGraphQLOrder
 
         return $response ?? [];
     }
+
 
 
     public function fulfillOrder(string $orderId, ?string $trackingNumber = null, ?string $trackingUrl = null): array
