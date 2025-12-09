@@ -1443,8 +1443,44 @@ class ShopifyGraphQLProduct
         if (!$inventoryItemId) {
             throw new \Exception("No se pudo obtener el inventoryItemId para la variante especificada.");
         }
+        // 4. Query para obtener el stock actual
+        $queryForGetInventario = <<<GRAPHQL
+            query getInventoryLevel(\$inventoryItemId: ID!, \$locationId: ID!) {
+                inventoryItem(id: \$inventoryItemId) {
+                    id
+                    inventoryLevel(locationId: \$locationId) {
+                    id
+                    quantities(names:["available", "incoming", "committed", "damaged", "on_hand", "quality_control", "reserved", "safety_stock"]) {
+                        name
+                        quantity
+                    }
+                    }
+                }
+            }
+        GRAPHQL;
 
-        // 4. Mutación para actualizar inventario
+        // Ejecutar el get de inventario
+        $result = $this->client->query($queryForGetInventario, [
+            "inventoryItemId" => $inventoryItemId,
+            "locationId" => $locationId,
+        ]);
+        $quantities = $result['inventoryItem']['inventoryLevel']['quantities'] ?? [];
+        //ejemplo de quantities
+        // [{
+        //     "name": "available",
+        //     "quantity": 99
+        // }]
+        $LIST_STOCK_TYPE_FOR_ADD = [ "committed" ];
+        $stockAdd = 0;
+        foreach ($quantities as $q) {
+            if (in_array($q["name"], $LIST_STOCK_TYPE_FOR_ADD, true)) {
+                $stockAdd += (int) $q["quantity"];
+            }
+        }
+
+        $quantity+=$stockAdd;
+
+        // 5. Mutación para actualizar inventario
         $mutationAdjustInventory = <<<GRAPHQL
             mutation inventorySetQuantities(\$input: InventorySetQuantitiesInput!) {
                 inventorySetQuantities(input: \$input) {
